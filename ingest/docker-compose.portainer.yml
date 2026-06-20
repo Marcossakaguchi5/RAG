@@ -92,6 +92,7 @@ services:
       - "traefik.http.routers.rag-ingest.entrypoints=websecure"
       - "traefik.http.routers.rag-ingest.tls.certresolver=le"
       - "traefik.http.services.rag-ingest.loadbalancer.server.port=80"
+      - "traefik.docker.network=web"
 
 volumes:
   mysql_data:
