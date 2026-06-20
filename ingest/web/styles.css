@@ -47,6 +47,8 @@ button { cursor: pointer; }
 .auth-password { display: block; margin-bottom: 18px; }
 .auth-password span { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 800; }
 .auth-card .button { width: 100%; }
+body.authenticated #auth-gate { display: none !important; }
+body.authenticated #app-shell { display: block !important; }
 
 .shell { max-width: 1180px; margin: 0 auto; padding: 62px 28px 80px; }
 

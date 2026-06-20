@@ -6,6 +6,7 @@ const auth = {
   set token(value) { sessionStorage.setItem(this.storageKey, value); },
   clear() { sessionStorage.removeItem(this.storageKey); },
   unlock() {
+    document.body.classList.add("authenticated");
     byId("auth-gate").hidden = true;
     byId("app-shell").hidden = false;
     byId("auth-password").value = "";
@@ -13,6 +14,7 @@ const auth = {
   },
   lock(message = "") {
     this.clear();
+    document.body.classList.remove("authenticated");
     byId("app-shell").hidden = true;
     byId("auth-gate").hidden = false;
     setNotice("auth-message", message, Boolean(message));
@@ -23,13 +25,14 @@ const auth = {
 const api = {
   async request(path, options = {}) {
     const headers = new Headers(options.headers || {});
-    if (auth.token && path !== "/api/auth/login") {
-      headers.set("Authorization", `Bearer ${auth.token}`);
+    const accessToken = auth.token;
+    if (accessToken && path !== "/api/auth/login") {
+      headers.set("Authorization", `Bearer ${accessToken}`);
     }
     const response = await fetch(path, { ...options, headers });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
-      if (response.status === 401 && path !== "/api/auth/login") {
+      if (response.status === 401 && path !== "/api/auth/login" && auth.token === accessToken) {
         auth.lock("Sua sessão expirou. Informe a senha novamente.");
       }
       const detail = Array.isArray(body?.detail)
@@ -292,16 +295,18 @@ function bindAuthentication() {
 }
 
 async function restoreSession() {
-  if (!auth.token) {
+  const accessToken = auth.token;
+  if (!accessToken) {
     auth.lock();
     return;
   }
   try {
     await api.session();
+    if (auth.token !== accessToken) return;
     auth.unlock();
     loadDashboard();
   } catch {
-    auth.lock();
+    if (auth.token === accessToken) auth.lock();
   }
 }
 
