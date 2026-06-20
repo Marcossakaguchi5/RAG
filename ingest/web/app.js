@@ -1,8 +1,37 @@
+const byId = (id) => document.getElementById(id);
+
+const auth = {
+  storageKey: "rag-ingest-access-token",
+  get token() { return sessionStorage.getItem(this.storageKey); },
+  set token(value) { sessionStorage.setItem(this.storageKey, value); },
+  clear() { sessionStorage.removeItem(this.storageKey); },
+  unlock() {
+    byId("auth-gate").hidden = true;
+    byId("app-shell").hidden = false;
+    byId("auth-password").value = "";
+    setNotice("auth-message");
+  },
+  lock(message = "") {
+    this.clear();
+    byId("app-shell").hidden = true;
+    byId("auth-gate").hidden = false;
+    setNotice("auth-message", message, Boolean(message));
+    byId("auth-password").focus();
+  },
+};
+
 const api = {
   async request(path, options = {}) {
-    const response = await fetch(path, options);
+    const headers = new Headers(options.headers || {});
+    if (auth.token && path !== "/api/auth/login") {
+      headers.set("Authorization", `Bearer ${auth.token}`);
+    }
+    const response = await fetch(path, { ...options, headers });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
+      if (response.status === 401 && path !== "/api/auth/login") {
+        auth.lock("Sua sessão expirou. Informe a senha novamente.");
+      }
       const detail = Array.isArray(body?.detail)
         ? body.detail.map((error) => `${error.filename}: ${error.detail}`).join(" · ")
         : body?.detail || "Não foi possível concluir a operação.";
@@ -10,6 +39,14 @@ const api = {
     }
     return body;
   },
+  login(password) {
+    return this.request("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+  },
+  session() { return this.request("/api/auth/session"); },
   documents() { return this.request("/api/documents"); },
   points() { return this.request("/api/points?limit=12"); },
   search(payload) {
@@ -22,7 +59,6 @@ const api = {
   upload(data) { return this.request("/api/documents/upload", { method: "POST", body: data }); },
 };
 
-const byId = (id) => document.getElementById(id);
 const escapeHtml = (value = "") => String(value)
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -228,10 +264,51 @@ function bindSearch() {
   });
 }
 
+function loadDashboard() {
+  renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
+  Promise.all([loadDocuments(), loadPoints()]);
+}
+
+function bindAuthentication() {
+  byId("auth-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const submit = byId("auth-submit");
+    submit.disabled = true;
+    submit.textContent = "Validando…";
+    setNotice("auth-message");
+    try {
+      const response = await api.login(byId("auth-password").value);
+      auth.token = response.access_token;
+      auth.unlock();
+      loadDashboard();
+    } catch (error) {
+      setNotice("auth-message", error.message, true);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Acessar painel";
+    }
+  });
+  byId("logout-button").addEventListener("click", () => auth.lock());
+}
+
+async function restoreSession() {
+  if (!auth.token) {
+    auth.lock();
+    return;
+  }
+  try {
+    await api.session();
+    auth.unlock();
+    loadDashboard();
+  } catch {
+    auth.lock();
+  }
+}
+
 bindTabs();
 bindUpload();
 bindSearch();
+bindAuthentication();
 byId("refresh-documents").addEventListener("click", loadDocuments);
 byId("refresh-points").addEventListener("click", loadPoints);
-renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
-Promise.all([loadDocuments(), loadPoints()]);
+restoreSession();

@@ -11,6 +11,8 @@ docker compose up --build
 
 Abra [http://localhost:8080](http://localhost:8080). A documentação interativa da API fica em [http://localhost:8010/docs](http://localhost:8010/docs), o console MinIO em [http://localhost:9001](http://localhost:9001) e o Qdrant atende em `http://localhost:6335`.
 
+O painel e todas as rotas `/api/*` exigem a senha de `INGEST_APP_PASSWORD`. Para desenvolvimento, ela está definida no `.env.example`; troque-a no `.env` (ou nas variáveis do stack do Portainer) antes de expor o serviço. A sessão do navegador dura 8 horas por padrão e pode ser ajustada com `INGEST_AUTH_TOKEN_TTL_SECONDS`. Apenas `/health` permanece público para monitoramento.
+
 Na primeira subida, o `sentence-transformers/all-MiniLM-L6-v2` será baixado para o volume persistente `model_cache`. Isso requer acesso à internet e pode levar alguns minutos; nas próximas inicializações ele é reutilizado.
 
 ## Estrutura
@@ -54,4 +56,4 @@ Para um benchmark real, o próximo passo natural é cadastrar um conjunto de par
 
 - Aceita apenas PDFs com texto extraível. PDFs escaneados precisarão de uma etapa OCR.
 - A coleção do Qdrant é um índice derivado do MySQL. Ao detectar a coleção densa legada, a API recria o formato dense+sparse e reindexa os chunks canônicos automaticamente na inicialização.
-- Ainda não há exclusão de documentos, autenticação nem fila assíncrona de ingestão. Esses itens pertencem bem a uma próxima etapa antes de produção.
+- Ainda não há exclusão de documentos nem fila assíncrona de ingestão. A autenticação atual é deliberadamente simples, baseada em uma senha fixa de ambiente, e deve evoluir para gestão de usuários antes de produção em escala.

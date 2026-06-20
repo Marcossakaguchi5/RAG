@@ -2,16 +2,19 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.auth import create_access_token, password_is_valid, require_authenticated
 from app.db import SessionLocal, get_session, init_database
 from app.models import Document
 from app.schemas import (
     DocumentOut,
+    LoginRequest,
+    LoginResponse,
     PointPreview,
     PointsResponse,
     SearchRequest,
@@ -64,6 +67,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+api_router = APIRouter(prefix="/api", dependencies=[Depends(require_authenticated)])
 
 
 @app.get("/health")
@@ -71,7 +75,20 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/api/documents/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/api/auth/login", response_model=LoginResponse)
+def login(payload: LoginRequest) -> LoginResponse:
+    if not password_is_valid(payload.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Senha inválida.")
+    access_token, expires_at = create_access_token()
+    return LoginResponse(access_token=access_token, expires_at=expires_at)
+
+
+@api_router.get("/auth/session")
+def auth_session() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@api_router.post("/documents/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_documents(
     files: list[UploadFile] = File(...), session: Session = Depends(get_session)
 ) -> UploadResponse:
@@ -95,13 +112,13 @@ async def upload_documents(
     return UploadResponse(documents=documents, errors=errors)
 
 
-@app.get("/api/documents", response_model=list[DocumentOut])
+@api_router.get("/documents", response_model=list[DocumentOut])
 def list_documents(session: Session = Depends(get_session)) -> list[DocumentOut]:
     documents = list(session.scalars(select(Document).order_by(Document.created_at.desc())))
     return [document_to_schema(document) for document in documents]
 
 
-@app.get("/api/points", response_model=PointsResponse)
+@api_router.get("/points", response_model=PointsResponse)
 def list_points(limit: int = Query(default=12, ge=1, le=100)) -> PointsResponse:
     try:
         total, points = preview_points(limit)
@@ -122,7 +139,7 @@ def list_points(limit: int = Query(default=12, ge=1, le=100)) -> PointsResponse:
         raise HTTPException(status_code=503, detail="Qdrant indisponível.") from error
 
 
-@app.post("/api/search", response_model=SearchResponse)
+@api_router.post("/search", response_model=SearchResponse)
 def search(payload: SearchRequest) -> SearchResponse:
     try:
         results = retrieve(payload.query, payload.method, payload.top_k)
@@ -135,3 +152,6 @@ def search(payload: SearchRequest) -> SearchResponse:
     relevant_ids = list({item.strip() for item in payload.relevant_chunk_ids if item.strip()})
     metrics = calculate_metrics([result.chunk_id for result in results], relevant_ids, payload.top_k)
     return SearchResponse(method=payload.method, top_k=payload.top_k, results=results, metrics=metrics)
+
+
+app.include_router(api_router)

@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,8 @@ class Settings(BaseSettings):
     app_name: str = "RAG Ingest API"
     environment: str = "development"
     cors_origins: str = "http://localhost:8080"
+    ingest_app_password: str = Field(default="alterar-esta-senha", min_length=1)
+    ingest_auth_token_ttl_seconds: int = Field(default=28800, gt=0)
 
     mysql_host: str = "mysql"
     mysql_port: int = 3306

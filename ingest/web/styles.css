@@ -27,6 +27,26 @@ body {
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 
+.auth-gate {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+}
+.auth-card {
+  width: min(100%, 420px);
+  padding: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.auth-card h1 { margin-bottom: 14px; font-size: 48px; }
+.auth-card > p:not(.eyebrow):not(.notice) { margin-bottom: 25px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.auth-password { display: block; margin-bottom: 18px; }
+.auth-password span { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 800; }
+.auth-card .button { width: 100%; }
+
 .shell { max-width: 1180px; margin: 0 auto; padding: 62px 28px 80px; }
 
 .hero {
@@ -75,6 +95,7 @@ h3 { margin-bottom: 0; font-size: 17px; letter-spacing: -0.03em; }
 .button.primary:hover { border-color: var(--accent-dark); background: var(--accent-dark); transform: translateY(-1px); }
 .button:disabled { cursor: wait; opacity: 0.48; transform: none; }
 .button.ghost { min-height: 34px; padding: 0 11px; border-color: var(--line); font-size: 11px; }
+.hero-actions { display: flex; align-items: center; gap: 9px; }
 
 .tabs { display: flex; border-bottom: 1px solid var(--line); }
 .tab { display: flex; gap: 9px; padding: 15px 20px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-family: "DM Mono", monospace; font-size: 12px; }

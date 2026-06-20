@@ -11,14 +11,31 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
+    <section id="auth-gate" class="auth-gate" aria-labelledby="auth-title">
+      <form id="auth-form" class="auth-card">
+        <p class="eyebrow"><span></span> ÁREA RESTRITA</p>
+        <h1 id="auth-title">RAG <em>Ingest</em></h1>
+        <p>Informe a senha configurada no ambiente para acessar o painel de ingestão.</p>
+        <label class="auth-password" for="auth-password">
+          <span>Senha de acesso</span>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" required autofocus />
+        </label>
+        <p id="auth-message" class="notice error" role="alert" hidden></p>
+        <button id="auth-submit" class="button primary" type="submit">Acessar painel</button>
+      </form>
+    </section>
+
+    <main id="app-shell" class="shell" hidden>
       <header class="hero">
         <div>
           <p class="eyebrow"><span></span> BASE DE CONHECIMENTO</p>
           <h1>RAG <em>Ingest</em></h1>
           <p class="lede">Envie PDFs, inspecione os chunks vetorizados e compare a recuperação antes de conectar o chat.</p>
         </div>
-        <a class="api-link" href="http://localhost:8010/docs" target="_blank" rel="noreferrer">API docs ↗</a>
+        <div class="hero-actions">
+          <a class="api-link" href="/docs" target="_blank" rel="noreferrer">API docs ↗</a>
+          <button id="logout-button" class="button ghost" type="button">Sair</button>
+        </div>
       </header>
 
       <section class="tabs" aria-label="Módulos de ingestão">

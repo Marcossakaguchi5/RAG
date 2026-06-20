@@ -63,6 +63,8 @@ services:
       HF_HOME: /models
       FASTEMBED_CACHE_PATH: /models/fastembed
       CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
+      INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD:-alterar-esta-senha}
+      INGEST_AUTH_TOKEN_TTL_SECONDS: ${INGEST_AUTH_TOKEN_TTL_SECONDS:-28800}
     depends_on:
       mysql:
         condition: service_healthy

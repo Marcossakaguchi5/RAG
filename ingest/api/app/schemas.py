@@ -7,6 +7,16 @@ from pydantic import BaseModel, Field
 RetrievalMethod = Literal["bm25", "dense", "hybrid"]
 
 
+class LoginRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=512)
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_at: int
+
+
 class DocumentOut(BaseModel):
     id: str
     original_name: str

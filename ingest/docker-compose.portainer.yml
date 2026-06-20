@@ -65,6 +65,8 @@ services:
       FASTEMBED_CACHE_PATH: /models/fastembed
 
       CORS_ORIGINS: https://ingest.136-248-79-252.sslip.io
+      INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD}
+      INGEST_AUTH_TOKEN_TTL_SECONDS: ${INGEST_AUTH_TOKEN_TTL_SECONDS:-28800}
     depends_on:
       mysql:
         condition: service_healthy
