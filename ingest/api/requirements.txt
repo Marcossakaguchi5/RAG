@@ -1,0 +1,15 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic-settings==2.8.1
+SQLAlchemy==2.0.40
+PyMySQL==1.1.1
+cryptography==44.0.2
+minio==7.2.15
+qdrant-client==1.13.3
+fastembed==0.6.1
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+sentence-transformers==4.1.0
+pypdf==5.4.0
+python-multipart==0.0.20
+numpy==2.2.5

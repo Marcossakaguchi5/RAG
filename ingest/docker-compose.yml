@@ -1,0 +1,91 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-rag_ingest}
+      MYSQL_USER: ${MYSQL_USER:-rag}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-rag_secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secret}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.3
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6335}:6333"
+      - "${QDRANT_GRPC_PORT:-6336}:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  ingest-api:
+    build:
+      context: ./ingest/api
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-rag_ingest}
+      MYSQL_USER: ${MYSQL_USER:-rag}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-rag_secret}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rag-documents}
+      MINIO_SECURE: "false"
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-rag_chunks}
+      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      SPARSE_MODEL: ${SPARSE_MODEL:-Qdrant/bm25}
+      SPARSE_LANGUAGE: ${SPARSE_LANGUAGE:-portuguese}
+      HF_HOME: /models
+      FASTEMBED_CACHE_PATH: /models/fastembed
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    ports:
+      - "${API_PORT:-8010}:8000"
+    volumes:
+      - model_cache:/models
+
+  ingest-web:
+    build:
+      context: ./ingest/web
+    restart: unless-stopped
+    depends_on:
+      - ingest-api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  mysql_data:
+  minio_data:
+  qdrant_data:
+  model_cache:

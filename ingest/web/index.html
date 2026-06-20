@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Painel de ingestão e avaliação de recuperação RAG" />
+    <title>RAG Ingest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow"><span></span> BASE DE CONHECIMENTO</p>
+          <h1>RAG <em>Ingest</em></h1>
+          <p class="lede">Envie PDFs, inspecione os chunks vetorizados e compare a recuperação antes de conectar o chat.</p>
+        </div>
+        <a class="api-link" href="http://localhost:8010/docs" target="_blank" rel="noreferrer">API docs ↗</a>
+      </header>
+
+      <section class="tabs" aria-label="Módulos de ingestão">
+        <button class="tab active" type="button" data-tab="upload" aria-selected="true">01 <span>Upload & pontos</span></button>
+        <button class="tab" type="button" data-tab="search" aria-selected="false">02 <span>Busca & avaliação</span></button>
+      </section>
+
+      <section id="upload-panel" class="panel active" role="tabpanel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Ingestão</p>
+            <h2>Adicionar documentos</h2>
+          </div>
+          <p>PDFs são extraídos por página, divididos em chunks e enviados ao Qdrant com vetores dense e sparse.</p>
+        </div>
+
+        <form id="upload-form" class="upload-form">
+          <label class="dropzone" for="pdf-files">
+            <input id="pdf-files" name="files" type="file" accept="application/pdf,.pdf" multiple />
+            <span class="upload-icon">↑</span>
+            <strong>Solte PDFs aqui ou escolha arquivos</strong>
+            <small>Apenas PDF nesta primeira versão · múltiplos arquivos permitidos</small>
+          </label>
+          <div class="upload-footer">
+            <span id="file-summary" class="muted">Nenhum arquivo selecionado</span>
+            <button id="upload-button" class="button primary" type="submit" disabled>Ingerir arquivos</button>
+          </div>
+        </form>
+
+        <div id="upload-message" class="notice" hidden></div>
+
+        <div class="split-section">
+          <section>
+            <div class="subheading">
+              <div>
+                <p class="section-label">Catálogo</p>
+                <h3>Documentos ingeridos</h3>
+              </div>
+              <button id="refresh-documents" class="button ghost" type="button">Atualizar</button>
+            </div>
+            <div id="documents-list" class="document-list loading">Carregando documentos…</div>
+          </section>
+
+          <section>
+            <div class="subheading">
+              <div>
+                <p class="section-label">Qdrant</p>
+                <h3>Preview dos pontos <span id="points-total" class="count"></span></h3>
+              </div>
+              <button id="refresh-points" class="button ghost" type="button">Atualizar</button>
+            </div>
+            <div id="points-list" class="points-list loading">Carregando pontos…</div>
+          </section>
+        </div>
+      </section>
+
+      <section id="search-panel" class="panel" role="tabpanel" hidden>
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Recuperação</p>
+            <h2>Perguntar à base</h2>
+          </div>
+          <p>Compare BM25, busca semântica densa e fusão híbrida no mesmo conjunto de documentos.</p>
+        </div>
+
+        <form id="search-form" class="search-form">
+          <label class="question-field">
+            <span>Sua pergunta</span>
+            <textarea id="query" name="query" rows="3" placeholder="Ex.: Quais são os requisitos para..." required></textarea>
+          </label>
+          <div class="search-controls">
+            <label>
+              <span>Método</span>
+              <select id="method" name="method">
+                <option value="hybrid">Híbrido · Sparse BM25 + Dense</option>
+                <option value="bm25">Sparse BM25 · Qdrant</option>
+                <option value="dense">Dense · all-MiniLM-L6-v2</option>
+              </select>
+            </label>
+            <label>
+              <span>Top K</span>
+              <select id="top-k" name="top-k">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+              </select>
+            </label>
+            <button class="button primary" type="submit">Buscar</button>
+          </div>
+          <label class="relevance-field">
+            <span>Chunks relevantes <small>(opcional — IDs separados por vírgula para calcular métricas)</small></span>
+            <input id="relevant-ids" name="relevant-ids" type="text" placeholder="Cole os IDs dos chunks que deveriam aparecer" />
+          </label>
+        </form>
+
+        <p id="search-message" class="notice" hidden></p>
+        <div class="results-layout">
+          <section>
+            <div class="subheading results-heading">
+              <div>
+                <p class="section-label">Top K</p>
+                <h3>Resultados</h3>
+              </div>
+              <span id="result-method" class="method-badge">Aguardando busca</span>
+            </div>
+            <div id="search-results" class="search-results empty-state">Faça uma pergunta para ver os chunks recuperados.</div>
+          </section>
+          <aside class="metrics-card">
+            <div>
+              <p class="section-label">Avaliação</p>
+              <h3>Métricas de ranking</h3>
+            </div>
+            <div id="metrics" class="metrics-grid"></div>
+            <p id="metrics-note" class="metrics-note">Informe chunks relevantes para habilitar a avaliação supervisionada.</p>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <template id="metric-template">
+      <div class="metric"><span></span><strong>—</strong></div>
+    </template>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
