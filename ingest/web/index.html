@@ -43,6 +43,21 @@
         <button class="tab" type="button" data-tab="search" aria-selected="false">02 <span>Busca & avaliação</span></button>
       </section>
 
+      <section class="collection-bar" aria-label="Collections">
+        <label>
+          <span>Collection ativa</span>
+          <select id="collection-select" name="collection-select" disabled></select>
+        </label>
+        <form id="collection-form" class="collection-form">
+          <label>
+            <span>Nova collection</span>
+            <input id="collection-name" name="collection-name" type="text" placeholder="ex.: citros_2026" maxlength="64" />
+          </label>
+          <button id="collection-submit" class="button ghost" type="submit">Adicionar</button>
+        </form>
+      </section>
+      <p id="collection-message" class="notice" hidden></p>
+
       <section id="upload-panel" class="panel active" role="tabpanel">
         <div class="panel-heading">
           <div>

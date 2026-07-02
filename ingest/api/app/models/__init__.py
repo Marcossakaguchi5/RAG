@@ -1,3 +1,3 @@
-from app.models.database import Chunk, Document
+from app.models.database import Chunk, Document, KnowledgeCollection
 
-__all__ = ["Chunk", "Document"]
+__all__ = ["Chunk", "Document", "KnowledgeCollection"]

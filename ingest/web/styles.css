@@ -104,6 +104,23 @@ h3 { margin-bottom: 0; font-size: 17px; letter-spacing: -0.03em; }
 .tab { display: flex; gap: 9px; padding: 15px 20px; border: 0; border-bottom: 3px solid transparent; color: var(--muted); background: transparent; font-family: "DM Mono", monospace; font-size: 12px; }
 .tab span { color: var(--ink); font-family: Manrope, Arial, sans-serif; font-size: 13px; font-weight: 800; }
 .tab.active { border-bottom-color: var(--accent); color: var(--accent); }
+.collection-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.78fr) minmax(280px, 1.22fr);
+  gap: 14px;
+  align-items: end;
+  padding: 20px 0 0;
+}
+.collection-bar label, .collection-form label { display: block; min-width: 0; }
+.collection-bar label span, .collection-form label span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+.collection-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.collection-form .button { min-height: 42px; }
 .panel { padding: 42px 0 0; }
 .panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 27px; }
 .panel-heading > p { max-width: 455px; margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 1.6; text-align: right; }
@@ -171,6 +188,7 @@ textarea:focus, input:focus, select:focus { border-color: var(--accent); box-sha
   .panel-heading { gap: 12px; }
   .panel-heading > p { text-align: left; }
   .split-section, .results-layout { grid-template-columns: 1fr; gap: 36px; }
+  .collection-bar, .collection-form { grid-template-columns: 1fr; }
   .search-controls { grid-template-columns: 1fr 100px; }
   .search-controls .button { grid-column: 1 / -1; }
   .tabs { overflow-x: auto; }

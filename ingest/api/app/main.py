@@ -2,16 +2,18 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import get_settings
 from app.core.auth import create_access_token, password_is_valid, require_authenticated
 from app.db import SessionLocal, get_session, init_database
-from app.models import Document
+from app.models import Document, KnowledgeCollection
 from app.schemas import (
+    CollectionIn,
+    CollectionOut,
     DocumentOut,
     LoginRequest,
     LoginResponse,
@@ -22,6 +24,7 @@ from app.schemas import (
     UploadError,
     UploadResponse,
 )
+from app.services.collections import normalize_collection_name
 from app.services.ingestion import document_to_schema, ingest_pdf
 from app.services.indexer import rebuild_index_from_mysql
 from app.services.retrieval import retrieve
@@ -33,18 +36,37 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def ensure_collection_ready(collection_name: str, session: Session | None = None) -> str:
+    collection_name = normalize_collection_name(collection_name)
+    collection_was_rebuilt = ensure_collection(collection_name)
+    if collection_was_rebuilt and session is not None:
+        reindexed = rebuild_index_from_mysql(session, collection_name=collection_name)
+        logger.info("Collection %s reconstruída com %s chunks.", collection_name, reindexed)
+    return collection_name
+
+
+def ensure_collection_record(session: Session, collection_name: str) -> None:
+    exists = session.scalar(select(KnowledgeCollection.id).where(KnowledgeCollection.name == collection_name))
+    if exists is None:
+        session.add(KnowledgeCollection(name=collection_name))
+        session.commit()
+
+
 def initialize_dependencies() -> None:
     last_error: Exception | None = None
     for attempt in range(1, 16):
         try:
             init_database()
             ensure_bucket()
-            collection_was_rebuilt = ensure_collection()
             get_sparse_embedding_service()
-            if collection_was_rebuilt:
-                with SessionLocal() as session:
-                    reindexed = rebuild_index_from_mysql(session)
-                logger.info("Índice Qdrant hybrid reconstruído com %s chunks.", reindexed)
+            with SessionLocal() as session:
+                collection_names = set(
+                    session.scalars(select(Document.collection_name).where(Document.collection_name != "").distinct())
+                )
+                collection_names.update(session.scalars(select(KnowledgeCollection.name)))
+                collection_names.add(settings.qdrant_collection)
+                for collection_name in sorted(collection_names):
+                    ensure_collection_ready(collection_name, session)
             return
         except Exception as error:  # serviços podem ainda estar subindo no compose
             last_error = error
@@ -88,15 +110,50 @@ def auth_session() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@api_router.get("/collections", response_model=list[CollectionOut])
+def list_collections(session: Session = Depends(get_session)) -> list[CollectionOut]:
+    rows = session.execute(
+        select(Document.collection_name, func.count(Document.id))
+        .group_by(Document.collection_name)
+        .order_by(Document.collection_name)
+    ).all()
+    counts = {name: count for name, count in rows if name}
+    names = set(counts)
+    names.update(session.scalars(select(KnowledgeCollection.name)))
+    names.add(settings.qdrant_collection)
+    return [CollectionOut(name=name, documents_count=counts.get(name, 0)) for name in sorted(names)]
+
+
+@api_router.post("/collections", response_model=CollectionOut, status_code=status.HTTP_201_CREATED)
+def create_collection(payload: CollectionIn, session: Session = Depends(get_session)) -> CollectionOut:
+    try:
+        collection_name = ensure_collection_ready(payload.name, session)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    ensure_collection_record(session, collection_name)
+    documents_count = session.scalar(
+        select(func.count(Document.id)).where(Document.collection_name == collection_name)
+    ) or 0
+    return CollectionOut(name=collection_name, documents_count=documents_count)
+
+
 @api_router.post("/documents/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_documents(
-    files: list[UploadFile] = File(...), session: Session = Depends(get_session)
+    files: list[UploadFile] = File(...),
+    collection_name: str = Form(default=settings.qdrant_collection),
+    session: Session = Depends(get_session),
 ) -> UploadResponse:
+    try:
+        collection_name = ensure_collection_ready(collection_name, session)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    ensure_collection_record(session, collection_name)
+
     documents: list[DocumentOut] = []
     errors: list[UploadError] = []
     for file in files:
         try:
-            documents.append(await ingest_pdf(file, session))
+            documents.append(await ingest_pdf(file, session, collection_name))
         except ValueError as error:
             errors.append(UploadError(filename=file.filename or "arquivo", detail=str(error)))
         except Exception:
@@ -113,15 +170,34 @@ async def upload_documents(
 
 
 @api_router.get("/documents", response_model=list[DocumentOut])
-def list_documents(session: Session = Depends(get_session)) -> list[DocumentOut]:
-    documents = list(session.scalars(select(Document).order_by(Document.created_at.desc())))
+def list_documents(
+    collection_name: str = Query(default=settings.qdrant_collection),
+    session: Session = Depends(get_session),
+) -> list[DocumentOut]:
+    try:
+        collection_name = normalize_collection_name(collection_name)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    documents = list(
+        session.scalars(
+            select(Document)
+            .where(Document.collection_name == collection_name)
+            .options(selectinload(Document.chunks))
+            .order_by(Document.created_at.desc())
+        )
+    )
     return [document_to_schema(document) for document in documents]
 
 
 @api_router.get("/points", response_model=PointsResponse)
-def list_points(limit: int = Query(default=12, ge=1, le=100)) -> PointsResponse:
+def list_points(
+    limit: int = Query(default=12, ge=1, le=100),
+    collection_name: str = Query(default=settings.qdrant_collection),
+    session: Session = Depends(get_session),
+) -> PointsResponse:
     try:
-        total, points = preview_points(limit)
+        collection_name = ensure_collection_ready(collection_name, session)
+        total, points = preview_points(limit, collection_name)
         previews = [
             PointPreview(
                 id=str(point.id),
@@ -140,9 +216,12 @@ def list_points(limit: int = Query(default=12, ge=1, le=100)) -> PointsResponse:
 
 
 @api_router.post("/search", response_model=SearchResponse)
-def search(payload: SearchRequest) -> SearchResponse:
+def search(payload: SearchRequest, session: Session = Depends(get_session)) -> SearchResponse:
     try:
-        results = retrieve(payload.query, payload.method, payload.top_k)
+        collection_name = ensure_collection_ready(payload.collection_name, session)
+        results = retrieve(payload.query, payload.method, payload.top_k, collection_name)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
     except Exception as error:
         logger.exception("Falha na recuperação")
         raise HTTPException(status_code=503, detail="A busca está temporariamente indisponível.") from error

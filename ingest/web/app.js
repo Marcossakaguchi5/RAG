@@ -1,5 +1,16 @@
 const byId = (id) => document.getElementById(id);
 
+const state = {
+  collectionStorageKey: "rag-ingest-selected-collection",
+  collections: [],
+  get collectionName() {
+    return sessionStorage.getItem(this.collectionStorageKey) || this.collections[0]?.name || "rag_chunks";
+  },
+  set collectionName(value) {
+    sessionStorage.setItem(this.collectionStorageKey, value);
+  },
+};
+
 const auth = {
   storageKey: "rag-ingest-access-token",
   get token() { return sessionStorage.getItem(this.storageKey); },
@@ -50,8 +61,20 @@ const api = {
     });
   },
   session() { return this.request("/api/auth/session"); },
-  documents() { return this.request("/api/documents"); },
-  points() { return this.request("/api/points?limit=12"); },
+  collections() { return this.request("/api/collections"); },
+  createCollection(name) {
+    return this.request("/api/collections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+  },
+  documents(collectionName) {
+    return this.request(`/api/documents?collection_name=${encodeURIComponent(collectionName)}`);
+  },
+  points(collectionName) {
+    return this.request(`/api/points?limit=12&collection_name=${encodeURIComponent(collectionName)}`);
+  },
   search(payload) {
     return this.request("/api/search", {
       method: "POST",
@@ -80,11 +103,32 @@ function setNotice(id, message = "", isError = false) {
   element.classList.toggle("error", isError);
 }
 
+function renderCollections(collections, preferredName = state.collectionName) {
+  const select = byId("collection-select");
+  state.collections = collections;
+  if (!collections.length) {
+    select.innerHTML = "";
+    select.disabled = true;
+    return;
+  }
+  const selected = collections.some((collection) => collection.name === preferredName)
+    ? preferredName
+    : collections[0].name;
+  state.collectionName = selected;
+  select.disabled = false;
+  select.innerHTML = collections.map((collection) => `
+    <option value="${escapeHtml(collection.name)}">
+      ${escapeHtml(collection.name)} · ${collection.documents_count} doc${collection.documents_count === 1 ? "" : "s"}
+    </option>
+  `).join("");
+  select.value = selected;
+}
+
 function renderDocuments(documents) {
   const container = byId("documents-list");
   if (!documents.length) {
     container.className = "document-list empty-state";
-    container.textContent = "Nenhum PDF ingerido ainda.";
+    container.textContent = `Nenhum PDF ingerido em ${state.collectionName}.`;
     return;
   }
   container.className = "document-list";
@@ -119,7 +163,7 @@ async function loadDocuments() {
   container.className = "document-list loading";
   container.textContent = "Carregando documentos…";
   try {
-    renderDocuments(await api.documents());
+    renderDocuments(await api.documents(state.collectionName));
   } catch (error) {
     container.className = "document-list empty-state";
     container.textContent = error.message;
@@ -131,10 +175,23 @@ async function loadPoints() {
   container.className = "points-list loading";
   container.textContent = "Carregando pontos…";
   try {
-    renderPoints(await api.points());
+    renderPoints(await api.points(state.collectionName));
   } catch (error) {
     container.className = "points-list empty-state";
     container.textContent = error.message;
+  }
+}
+
+async function loadCollections(preferredName = state.collectionName) {
+  const select = byId("collection-select");
+  select.disabled = true;
+  try {
+    renderCollections(await api.collections(), preferredName);
+    setNotice("collection-message");
+  } catch (error) {
+    select.innerHTML = "";
+    select.disabled = true;
+    setNotice("collection-message", error.message, true);
   }
 }
 
@@ -223,6 +280,7 @@ function bindUpload() {
   byId("upload-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData();
+    data.append("collection_name", state.collectionName);
     [...input.files].forEach((file) => data.append("files", file));
     button.disabled = true;
     button.textContent = "Indexando…";
@@ -233,12 +291,47 @@ function bindUpload() {
       setNotice("upload-message", `${response.documents.length} documento(s) ingerido(s).${errors.length ? ` ${errors.join(" · ")}` : ""}`, Boolean(errors.length));
       input.value = "";
       updateFiles();
+      await loadCollections(state.collectionName);
       await Promise.all([loadDocuments(), loadPoints()]);
     } catch (error) {
       setNotice("upload-message", error.message, true);
     } finally {
       button.textContent = "Ingerir arquivos";
       updateFiles();
+    }
+  });
+}
+
+function bindCollections() {
+  byId("collection-select").addEventListener("change", async (event) => {
+    state.collectionName = event.target.value;
+    setNotice("collection-message");
+    byId("search-results").className = "search-results empty-state";
+    byId("search-results").textContent = "Faça uma pergunta para ver os chunks recuperados.";
+    byId("result-method").textContent = "Aguardando busca";
+    await Promise.all([loadDocuments(), loadPoints()]);
+  });
+
+  byId("collection-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = byId("collection-name");
+    const submit = byId("collection-submit");
+    const name = input.value.trim();
+    if (!name) return;
+    submit.disabled = true;
+    submit.textContent = "Criando…";
+    setNotice("collection-message");
+    try {
+      const collection = await api.createCollection(name);
+      input.value = "";
+      await loadCollections(collection.name);
+      await Promise.all([loadDocuments(), loadPoints()]);
+      setNotice("collection-message", `Collection ${collection.name} pronta para receber arquivos.`);
+    } catch (error) {
+      setNotice("collection-message", error.message, true);
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Adicionar";
     }
   });
 }
@@ -253,6 +346,7 @@ function bindSearch() {
     try {
       const data = await api.search({
         query: byId("query").value.trim(),
+        collection_name: state.collectionName,
         method: byId("method").value,
         top_k: Number(byId("top-k").value),
         relevant_chunk_ids: byId("relevant-ids").value.split(",").map((id) => id.trim()).filter(Boolean),
@@ -267,9 +361,10 @@ function bindSearch() {
   });
 }
 
-function loadDashboard() {
+async function loadDashboard() {
   renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
-  Promise.all([loadDocuments(), loadPoints()]);
+  await loadCollections();
+  await Promise.all([loadDocuments(), loadPoints()]);
 }
 
 function bindAuthentication() {
@@ -311,6 +406,7 @@ async function restoreSession() {
 }
 
 bindTabs();
+bindCollections();
 bindUpload();
 bindSearch();
 bindAuthentication();

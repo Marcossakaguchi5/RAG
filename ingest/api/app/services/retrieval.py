@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.schemas import SearchHit
+from app.services.collections import normalize_collection_name
 from app.services.embeddings import get_embedding_service
 from app.services.sparse_embeddings import get_sparse_embedding_service
 from app.services.vector_store import search_dense, search_hybrid, search_sparse
@@ -53,19 +54,29 @@ def _records_from_points(points: list[object], score_type: str) -> list[Retrieve
     return records
 
 
-def retrieve(query: str, method: str, top_k: int) -> list[SearchHit]:
+def retrieve(query: str, method: str, top_k: int, collection_name: str) -> list[SearchHit]:
+    collection_name = normalize_collection_name(collection_name)
     dense_vector = get_embedding_service().encode([query])[0]
     if method == "bm25":
         sparse_vector = get_sparse_embedding_service().encode_query(query)
         if sparse_vector is None:
             return []
-        return [record.to_schema() for record in _records_from_points(search_sparse(sparse_vector, top_k), "bm25")]
+        return [
+            record.to_schema()
+            for record in _records_from_points(search_sparse(sparse_vector, top_k, collection_name), "bm25")
+        ]
 
     if method == "dense":
-        return [record.to_schema() for record in _records_from_points(search_dense(dense_vector, top_k), "dense")]
+        return [
+            record.to_schema()
+            for record in _records_from_points(search_dense(dense_vector, top_k, collection_name), "dense")
+        ]
 
     sparse_vector = get_sparse_embedding_service().encode_query(query)
     if sparse_vector is None:
-        return [record.to_schema() for record in _records_from_points(search_dense(dense_vector, top_k), "dense")]
-    points = search_hybrid(dense_vector, sparse_vector, top_k)
+        return [
+            record.to_schema()
+            for record in _records_from_points(search_dense(dense_vector, top_k, collection_name), "dense")
+        ]
+    points = search_hybrid(dense_vector, sparse_vector, top_k, collection_name)
     return [record.to_schema() for record in _records_from_points(points, "hybrid")]

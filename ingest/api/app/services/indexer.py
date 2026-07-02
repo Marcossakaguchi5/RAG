@@ -11,6 +11,7 @@ from app.services.vector_store import DENSE_VECTOR_NAME, SPARSE_VECTOR_NAME, ups
 def index_document_chunks(document: Document, chunks: list[Chunk]) -> None:
     if not chunks:
         return
+    collection_name = document.collection_name
     dense_vectors = get_embedding_service().encode([chunk.content for chunk in chunks])
     sparse_vectors = get_sparse_embedding_service().encode_documents([chunk.content for chunk in chunks])
     points = [
@@ -22,6 +23,7 @@ def index_document_chunks(document: Document, chunks: list[Chunk]) -> None:
             },
             payload={
                 "chunk_id": chunk.id,
+                "collection_name": collection_name,
                 "document_id": document.id,
                 "document_name": document.original_name,
                 "page_number": chunk.page_number,
@@ -31,21 +33,26 @@ def index_document_chunks(document: Document, chunks: list[Chunk]) -> None:
         )
         for chunk, dense_vector, sparse_vector in zip(chunks, dense_vectors, sparse_vectors, strict=True)
     ]
-    upsert_chunks(points)
+    upsert_chunks(points, collection_name)
 
 
-def rebuild_index_from_mysql(session: Session, batch_size: int = 20) -> int:
+def rebuild_index_from_mysql(session: Session, collection_name: str | None = None, batch_size: int = 20) -> int:
     """Reconstrói o índice derivado em lotes de documentos, sem carregar a base inteira."""
     indexed_chunks = 0
     last_document_id = ""
     while True:
+        query = (
+            select(Document)
+            .where(Document.id > last_document_id)
+            .options(selectinload(Document.chunks))
+            .order_by(Document.id)
+            .limit(batch_size)
+        )
+        if collection_name:
+            query = query.where(Document.collection_name == collection_name)
         documents = list(
             session.scalars(
-                select(Document)
-                .where(Document.id > last_document_id)
-                .options(selectinload(Document.chunks))
-                .order_by(Document.id)
-                .limit(batch_size)
+                query
             )
         )
         if not documents:

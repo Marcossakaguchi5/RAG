@@ -20,10 +20,20 @@ class LoginResponse(BaseModel):
 class DocumentOut(BaseModel):
     id: str
     original_name: str
+    collection_name: str
     size_bytes: int
     page_count: int
     chunks_count: int
     created_at: datetime
+
+
+class CollectionIn(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+
+
+class CollectionOut(BaseModel):
+    name: str
+    documents_count: int = 0
 
 
 class UploadError(BaseModel):
@@ -52,6 +62,7 @@ class PointsResponse(BaseModel):
 
 class SearchRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
+    collection_name: str = Field(default="rag_chunks", min_length=1, max_length=64)
     method: RetrievalMethod = "hybrid"
     top_k: int = Field(default=5, ge=1, le=50)
     relevant_chunk_ids: list[str] = Field(default_factory=list)

@@ -9,11 +9,21 @@ class Base(DeclarativeBase):
     pass
 
 
+class KnowledgeCollection(Base):
+    __tablename__ = "collections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, index=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+
 class Document(Base):
     __tablename__ = "documents"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
     original_name: Mapped[str] = mapped_column(String(512), nullable=False)
+    collection_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     object_name: Mapped[str] = mapped_column(String(768), nullable=False, unique=True)
     content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
