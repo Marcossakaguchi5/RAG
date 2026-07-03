@@ -1,0 +1,8 @@
+datasets
+fastembed
+numpy
+pydantic
+pydantic-settings
+qdrant-client
+sentence-transformers
+torch
