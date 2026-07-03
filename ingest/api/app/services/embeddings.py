@@ -13,7 +13,10 @@ class EmbeddingService:
 
     @property
     def dimension(self) -> int:
-        dimension = self._model.get_sentence_embedding_dimension()
+        dimension_getter = getattr(self._model, "get_embedding_dimension", None)
+        if dimension_getter is None:
+            dimension_getter = self._model.get_sentence_embedding_dimension
+        dimension = dimension_getter()
         if dimension is None:
             raise RuntimeError("Não foi possível determinar a dimensão do modelo de embeddings.")
         return dimension
