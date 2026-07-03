@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Chat RAG com selecao de collection, reranking e metricas RAGAS" />
+    <title>RAG Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <section id="auth-gate" class="auth-gate" aria-labelledby="auth-title">
+      <form id="auth-form" class="auth-card">
+        <p class="eyebrow"><span></span> AREA RESTRITA</p>
+        <h1 id="auth-title">RAG <em>Chat</em></h1>
+        <p>Informe a senha configurada no ambiente para acessar o painel de perguntas.</p>
+        <label class="auth-password" for="auth-password">
+          <span>Senha de acesso</span>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" required autofocus />
+        </label>
+        <p id="auth-message" class="notice error" role="alert" hidden></p>
+        <button id="auth-submit" class="button primary" type="submit">Acessar chat</button>
+      </form>
+    </section>
+
+    <main id="app-shell" class="shell" hidden>
+      <header class="hero">
+        <div>
+          <p class="eyebrow"><span></span> PERGUNTAS COM BASE</p>
+          <h1>RAG <em>Chat</em></h1>
+          <p class="lede">Escolha a collection, compare busca por embedding, BM25 ou hibrida, aplique reranking e avalie a resposta com metricas RAGAS.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="api-link" href="/docs" target="_blank" rel="noreferrer">API docs</a>
+          <button id="logout-button" class="button ghost" type="button">Sair</button>
+        </div>
+      </header>
+
+      <section class="collection-bar" aria-label="Collections">
+        <label>
+          <span>Collection da pergunta</span>
+          <select id="collection-select" name="collection-select" disabled></select>
+        </label>
+        <button id="refresh-collections" class="button ghost" type="button">Atualizar collections</button>
+      </section>
+      <p id="collection-message" class="notice" hidden></p>
+
+      <section class="workspace">
+        <form id="rag-form" class="question-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-label">Chat RAG</p>
+              <h2>Perguntar a base</h2>
+            </div>
+            <p>A resposta usa somente os chunks recuperados da collection selecionada e cita as fontes pelo ranking final.</p>
+          </div>
+
+          <label class="question-field">
+            <span>Sua pergunta</span>
+            <textarea id="query" name="query" rows="4" placeholder="Ex.: Quais pontos do documento sustentam..." required></textarea>
+          </label>
+
+          <div class="controls-grid">
+            <label>
+              <span>Busca</span>
+              <select id="method" name="method">
+                <option value="hybrid" selected>Hibrida · Dense + BM25</option>
+                <option value="dense">Embedding · Dense</option>
+                <option value="bm25">BM25 · Sparse</option>
+              </select>
+            </label>
+            <label>
+              <span>Top K final</span>
+              <select id="top-k" name="top-k">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="8">8</option>
+                <option value="10">10</option>
+              </select>
+            </label>
+            <label>
+              <span>Candidatos</span>
+              <select id="candidate-k" name="candidate-k">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="35">35</option>
+                <option value="50">50</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="switch-row">
+            <label class="switch">
+              <input id="use-reranker" type="checkbox" checked />
+              <span></span>
+              <strong>Reranker</strong>
+            </label>
+            <label class="switch">
+              <input id="evaluate-ragas" type="checkbox" checked />
+              <span></span>
+              <strong>RAGAS</strong>
+            </label>
+          </div>
+
+          <label class="reference-field">
+            <span>Resposta de referencia <small>(opcional para Context recall e Answer correctness)</small></span>
+            <textarea id="reference-answer" rows="3" placeholder="Cole uma resposta esperada quando quiser avaliar contra ground truth."></textarea>
+          </label>
+
+          <div class="submit-row">
+            <span id="run-summary" class="muted">Aguardando pergunta.</span>
+            <button id="rag-submit" class="button primary" type="submit">Perguntar</button>
+          </div>
+        </form>
+
+        <aside class="metrics-card">
+          <div>
+            <p class="section-label">Avaliacao</p>
+            <h3>RAGAS</h3>
+          </div>
+          <div id="ragas-metrics" class="metrics-grid"></div>
+          <p id="ragas-note" class="metrics-note">Execute uma pergunta para calcular as metricas.</p>
+        </aside>
+      </section>
+
+      <p id="rag-message" class="notice" hidden></p>
+
+      <section class="answer-layout">
+        <article class="answer-panel">
+          <div class="subheading">
+            <div>
+              <p class="section-label">Resposta</p>
+              <h3>Resultado fundamentado</h3>
+            </div>
+            <span id="result-method" class="method-badge">Aguardando</span>
+          </div>
+          <div id="answer" class="answer empty-state">A resposta aparecera aqui.</div>
+        </article>
+
+        <article class="sources-panel">
+          <div class="subheading">
+            <div>
+              <p class="section-label">Contextos</p>
+              <h3>Fontes recuperadas</h3>
+            </div>
+            <span id="sources-count" class="count"></span>
+          </div>
+          <div id="sources" class="sources empty-state">Os chunks usados aparecerao aqui.</div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
