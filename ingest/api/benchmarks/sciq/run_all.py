@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any
@@ -31,12 +32,21 @@ def parse_methods(raw: str) -> list[str]:
     return methods
 
 
+def default_run_dir(data_dir: Path) -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return data_dir / "runs" / timestamp
+
+
 def run_all(args: argparse.Namespace) -> dict[str, Any]:
     configure_benchmark_environment(args.qdrant_url, args.sparse_language, args.fastembed_cache_dir)
     started_at = perf_counter()
     methods = parse_methods(args.methods)
     k_values = parse_k_values(args.k)
+    run_dir = args.run_dir or default_run_dir(args.data_dir)
+    retrieval_dir = run_dir / "retrieval"
+    results_dir = run_dir / "results"
     summary: dict[str, Any] = {
+        "run_dir": str(run_dir),
         "collection": args.collection,
         "qdrant_url": args.qdrant_url,
         "sparse_language": args.sparse_language,
@@ -73,7 +83,7 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
     retrieval_summaries = {}
     evaluation_summaries = {}
     for method in methods:
-        run_path = args.data_dir / "runs" / f"{method}_{args.split}.jsonl"
+        run_path = retrieval_dir / f"{method}_{args.split}.jsonl"
         print(f"Rodando retrieval: method={method}, split={args.split}, top_k={args.top_k}...")
         retrieval_summaries[method] = run_retrieval(
             queries_path=args.data_dir / "processed" / "queries.jsonl",
@@ -92,8 +102,8 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
             split=args.split,
             k_values=k_values,
         )
-        metrics_json_path = args.data_dir / "results" / f"{method}_{args.split}_metrics.json"
-        metrics_csv_path = args.data_dir / "results" / f"{method}_{args.split}_metrics.csv"
+        metrics_json_path = results_dir / f"{method}_{args.split}_metrics.json"
+        metrics_csv_path = results_dir / f"{method}_{args.split}_metrics.csv"
         write_json(metrics_json_path, metrics_payload)
         write_csv_summary(metrics_csv_path, metrics_payload)
         evaluation_summaries[method] = {
@@ -106,7 +116,7 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
     summary["steps"]["evaluation"] = evaluation_summaries
     summary["elapsed_seconds"] = round(perf_counter() - started_at, 3)
 
-    summary_path = args.data_dir / "results" / f"summary_{args.split}.json"
+    summary_path = run_dir / f"summary_{args.split}.json"
     write_json(summary_path, summary)
     summary["summary_path"] = str(summary_path)
     return summary
@@ -115,6 +125,7 @@ def run_all(args: argparse.Namespace) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Executa o benchmark SciQ completo.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--run-dir", type=Path, default=None)
     parser.add_argument("--collection", default="sciq_baseline")
     parser.add_argument("--qdrant-url", default=DEFAULT_QDRANT_URL)
     parser.add_argument("--sparse-language", default=DEFAULT_SPARSE_LANGUAGE)

@@ -33,7 +33,11 @@ class Settings(BaseSettings):
     fastembed_cache_dir: str = "/models/fastembed"
 
     docling_enabled: bool = True
-    docling_artifacts_path: str = "/models/docling"
+    docling_artifacts_path: str = ""
+    docling_ocr_enabled: bool = True
+    docling_ocr_force_full_page: bool = False
+    docling_ocr_languages: str = "pt,en"
+    docling_ocr_min_text_chars: int = Field(default=80, ge=0)
     chunk_min_words: int = Field(default=180, ge=1)
     chunk_size_words: int = 700
     chunk_overlap_words: int = 100

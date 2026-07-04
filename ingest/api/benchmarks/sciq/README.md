@@ -8,6 +8,8 @@ Ele usa o SciQ como conjunto supervisionado:
 - `query_id -> support_doc_id` vira qrels.
 - `correct_answer` fica salvo para uma etapa futura de geração, mas não entra no índice.
 
+Como o corpus SciQ já vem em texto, ele não passa pelo Docling. A etapa de ingestão usa o mesmo chunker dinâmico do módulo `ingest`, então supports longos podem virar múltiplos chunks. A avaliação continua em nível de documento/support: qualquer chunk recuperado do support correto conta como acerto para o `doc_id` relevante.
+
 ## Preparar ambiente
 
 Execute os comandos a partir de `ingest/api`:
@@ -62,14 +64,22 @@ python benchmarks/sciq/evaluate_retrieval.py --run benchmarks/sciq/data/runs/hyb
 
 ## Saídas
 
-Os arquivos gerados ficam em `benchmarks/sciq/data/`:
+Os arquivos preparados ficam em `benchmarks/sciq/data/processed/`:
 
 - `processed/corpus.jsonl`
 - `processed/queries.jsonl`
 - `processed/qrels.jsonl`
-- `runs/{method}_{split}.jsonl`
-- `results/{method}_{split}_metrics.json`
-- `results/{method}_{split}_metrics.csv`
-- `results/summary_{split}.json`
+
+Cada execução completa de `run_all.py` cria uma pasta nova com timestamp:
+
+```text
+benchmarks/sciq/data/runs/YYYYMMDD-HHMMSS/
+├── retrieval/{method}_{split}.jsonl
+├── results/{method}_{split}_metrics.json
+├── results/{method}_{split}_metrics.csv
+└── summary_{split}.json
+```
+
+Use `--run-dir benchmarks/sciq/data/runs/meu_experimento` para escolher manualmente a pasta da rodada.
 
 As métricas calculadas são `hit_rate`, `precision`, `recall`, `MAP`, `NDCG` e `MRR` para cada `k`.

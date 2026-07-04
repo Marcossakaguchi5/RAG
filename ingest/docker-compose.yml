@@ -62,7 +62,6 @@ services:
       QDRANT_URL: http://qdrant:6333
       HF_HOME: /models
       FASTEMBED_CACHE_PATH: /models/fastembed
-      DOCLING_ARTIFACTS_PATH: /models/docling
       CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
       INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD:-alterar-esta-senha}
     depends_on:

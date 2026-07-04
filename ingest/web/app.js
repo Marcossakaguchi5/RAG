@@ -3,6 +3,8 @@ const byId = (id) => document.getElementById(id);
 const state = {
   collectionStorageKey: "rag-ingest-selected-collection",
   collections: [],
+  lastSearchPayload: null,
+  relevantIds: new Set(),
   get collectionName() {
     return sessionStorage.getItem(this.collectionStorageKey) || this.collections[0]?.name || "rag_chunks";
   },
@@ -95,12 +97,44 @@ const shortId = (id) => id.length > 13 ? `${id.slice(0, 8)}…${id.slice(-4)}` :
 const bytes = (value) => value < 1024 * 1024
   ? `${Math.max(1, Math.round(value / 1024))} KB`
   : `${(value / (1024 * 1024)).toFixed(1)} MB`;
+const relevantIdsFromInput = () => byId("relevant-ids").value
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
 
 function setNotice(id, message = "", isError = false) {
   const element = byId(id);
   element.hidden = !message;
   element.textContent = message;
   element.classList.toggle("error", isError);
+}
+
+function updateRelevanceControls({ writeInput = true } = {}) {
+  const ids = [...state.relevantIds];
+  if (writeInput) {
+    byId("relevant-ids").value = ids.join(", ");
+  }
+  byId("relevant-count").textContent = `${ids.length} marcado${ids.length === 1 ? "" : "s"}`;
+  byId("clear-relevance").disabled = !ids.length;
+  byId("recompute-metrics").disabled = !state.lastSearchPayload;
+  document.querySelectorAll("#search-results input[data-chunk-id]").forEach((input) => {
+    input.checked = state.relevantIds.has(input.dataset.chunkId);
+  });
+}
+
+function syncRelevantIdsFromInput({ writeInput = false } = {}) {
+  state.relevantIds = new Set(relevantIdsFromInput());
+  updateRelevanceControls({ writeInput });
+}
+
+function resetSearchState() {
+  state.lastSearchPayload = null;
+  state.relevantIds = new Set();
+  byId("search-results").className = "search-results empty-state";
+  byId("search-results").textContent = "Faça uma pergunta para ver os chunks recuperados.";
+  byId("result-method").textContent = "Aguardando busca";
+  renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
+  updateRelevanceControls();
 }
 
 function renderCollections(collections, preferredName = state.collectionName) {
@@ -153,7 +187,11 @@ function renderPoints(data) {
   container.className = "points-list";
   container.innerHTML = data.points.map((point) => `
     <article class="point">
-      <div class="point-top"><span>${escapeHtml(point.document_name)} · p. ${point.page_number}</span><code title="${point.id}">${shortId(point.id)}</code></div>
+      <div class="point-top">
+        <span>${escapeHtml(point.file_name || point.document_name)} · p. ${point.page_number} · chunk ${point.chunk_index || point.ordinal + 1}${point.chunk_total ? `/${point.chunk_total}` : ""}</span>
+        <code title="${point.id}">${shortId(point.id)}</code>
+      </div>
+      <div class="point-meta">${point.word_count || 0} palavras · ${point.char_count || point.content.length} caracteres · doc ${shortId(point.document_id)}</div>
       <p>${escapeHtml(point.content)}</p>
     </article>`).join("");
 }
@@ -210,6 +248,17 @@ function renderMetrics(metrics, topK) {
     : metrics.message;
 }
 
+function buildSearchPayload() {
+  syncRelevantIdsFromInput({ writeInput: true });
+  return {
+    query: byId("query").value.trim(),
+    collection_name: state.collectionName,
+    method: byId("method").value,
+    top_k: Number(byId("top-k").value),
+    relevant_chunk_ids: [...state.relevantIds],
+  };
+}
+
 function renderResults(data) {
   const container = byId("search-results");
   byId("result-method").textContent = data.method === "dense"
@@ -227,16 +276,24 @@ function renderResults(data) {
       result.dense_score !== null ? `dense ${result.dense_score.toFixed(3)}` : null,
       result.bm25_score !== null ? `sparse bm25 ${result.bm25_score.toFixed(3)}` : null,
     ].filter(Boolean).join(" · ");
+    const checked = state.relevantIds.has(result.chunk_id) ? "checked" : "";
     return `
       <article class="result">
         <div class="result-top">
           <div><span class="result-source">#${index + 1} · ${escapeHtml(result.document_name)} · página ${result.page_number}</span><code class="result-id" title="Use este ID como relevância">${result.chunk_id}</code></div>
-          <span class="score">${result.score.toFixed(4)}</span>
+          <div class="result-actions">
+            <label class="relevance-check" title="Marcar como chunk relevante">
+              <input type="checkbox" data-chunk-id="${escapeHtml(result.chunk_id)}" ${checked} />
+              <span>Relevante</span>
+            </label>
+            <span class="score">${result.score.toFixed(4)}</span>
+          </div>
         </div>
         <p class="result-content">${escapeHtml(result.content)}</p>
         ${details ? `<div class="score-detail">${details}</div>` : ""}
       </article>`;
   }).join("");
+  updateRelevanceControls();
 }
 
 function bindTabs() {
@@ -306,9 +363,7 @@ function bindCollections() {
   byId("collection-select").addEventListener("change", async (event) => {
     state.collectionName = event.target.value;
     setNotice("collection-message");
-    byId("search-results").className = "search-results empty-state";
-    byId("search-results").textContent = "Faça uma pergunta para ver os chunks recuperados.";
-    byId("result-method").textContent = "Aguardando busca";
+    resetSearchState();
     await Promise.all([loadDocuments(), loadPoints()]);
   });
 
@@ -337,27 +392,52 @@ function bindCollections() {
 }
 
 function bindSearch() {
-  byId("search-form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const submit = event.submitter;
-    submit.disabled = true;
-    submit.textContent = "Buscando…";
+  async function runSearch(button) {
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = button.id === "recompute-metrics" ? "Calculando…" : "Buscando…";
     setNotice("search-message");
     try {
-      const data = await api.search({
-        query: byId("query").value.trim(),
-        collection_name: state.collectionName,
-        method: byId("method").value,
-        top_k: Number(byId("top-k").value),
-        relevant_chunk_ids: byId("relevant-ids").value.split(",").map((id) => id.trim()).filter(Boolean),
-      });
+      const payload = buildSearchPayload();
+      const data = await api.search(payload);
+      state.lastSearchPayload = payload;
       renderResults(data);
     } catch (error) {
       setNotice("search-message", error.message, true);
     } finally {
-      submit.disabled = false;
-      submit.textContent = "Buscar";
+      button.disabled = false;
+      button.textContent = originalText;
+      updateRelevanceControls();
     }
+  }
+
+  byId("search-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await runSearch(event.submitter || byId("search-form").querySelector(".button.primary"));
+  });
+
+  byId("relevant-ids").addEventListener("input", () => syncRelevantIdsFromInput());
+
+  byId("clear-relevance").addEventListener("click", () => {
+    state.relevantIds = new Set();
+    updateRelevanceControls();
+  });
+
+  byId("recompute-metrics").addEventListener("click", async (event) => {
+    await runSearch(event.currentTarget);
+  });
+
+  byId("search-results").addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.dataset.chunkId) {
+      return;
+    }
+    if (input.checked) {
+      state.relevantIds.add(input.dataset.chunkId);
+    } else {
+      state.relevantIds.delete(input.dataset.chunkId);
+    }
+    updateRelevanceControls();
   });
 }
 

@@ -94,14 +94,23 @@ def run_retrieval(
     started_at = perf_counter()
     for position, row in enumerate(rows, start=1):
         query_started_at = perf_counter()
-        results = retrieve_with_loaded_services(
+        candidates = retrieve_with_loaded_services(
             str(row["question"]),
             method,
-            top_k,
+            top_k * 4,
             collection_name,
             embedding_service,
             sparse_service,
         )
+        results = []
+        seen_documents = set()
+        for candidate in candidates:
+            if candidate.document_id in seen_documents:
+                continue
+            seen_documents.add(candidate.document_id)
+            results.append(candidate)
+            if len(results) >= top_k:
+                break
         latency_ms = round((perf_counter() - query_started_at) * 1000, 3)
         for rank, result in enumerate(results, start=1):
             run_rows.append(
@@ -109,7 +118,8 @@ def run_retrieval(
                     "query_id": row["query_id"],
                     "split": split,
                     "method": method,
-                    "doc_id": result.chunk_id,
+                    "doc_id": result.document_id,
+                    "chunk_id": result.chunk_id,
                     "rank": rank,
                     "score": result.score,
                     "latency_ms": latency_ms,

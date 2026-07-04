@@ -8,6 +8,21 @@ from app.services.embeddings import get_embedding_service
 
 DENSE_VECTOR_NAME = "dense"
 SPARSE_VECTOR_NAME = "sparse"
+PAYLOAD_INDEXES = {
+    "collection_name": models.PayloadSchemaType.KEYWORD,
+    "document_id": models.PayloadSchemaType.KEYWORD,
+    "document_name": models.PayloadSchemaType.TEXT,
+    "file_name": models.PayloadSchemaType.TEXT,
+    "content_type": models.PayloadSchemaType.KEYWORD,
+    "source_type": models.PayloadSchemaType.KEYWORD,
+    "page_number": models.PayloadSchemaType.INTEGER,
+    "ordinal": models.PayloadSchemaType.INTEGER,
+    "chunk_index": models.PayloadSchemaType.INTEGER,
+    "chunk_total": models.PayloadSchemaType.INTEGER,
+    "word_count": models.PayloadSchemaType.INTEGER,
+    "indexed_at": models.PayloadSchemaType.DATETIME,
+}
+_payload_indexes_checked: set[str] = set()
 
 
 @lru_cache
@@ -29,6 +44,26 @@ def _create_collection(collection_name: str) -> None:
             SPARSE_VECTOR_NAME: models.SparseVectorParams(modifier=models.Modifier.IDF)
         },
     )
+    ensure_payload_indexes(collection_name, force=True)
+
+
+def ensure_payload_indexes(collection_name: str, force: bool = False) -> None:
+    if not force and collection_name in _payload_indexes_checked:
+        return
+    client = get_vector_client()
+    for field_name, field_schema in PAYLOAD_INDEXES.items():
+        try:
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name=field_name,
+                field_schema=field_schema,
+                wait=True,
+            )
+        except Exception:
+            # O índice pode já existir ou versões antigas do Qdrant podem rejeitar algum tipo.
+            # A busca vetorial continua funcionando; os índices só aceleram filtros futuros.
+            pass
+    _payload_indexes_checked.add(collection_name)
 
 
 def _is_hybrid_collection(collection_name: str) -> bool:
@@ -52,6 +87,7 @@ def ensure_collection(collection_name: str | None = None) -> bool:
         return True
 
     if _is_hybrid_collection(resolved_collection):
+        ensure_payload_indexes(resolved_collection)
         return False
 
     # O Qdrant é índice derivado: os chunks canônicos estão no MySQL e serão reindexados.
@@ -67,6 +103,7 @@ def ensure_collection(collection_name: str | None = None) -> bool:
             SPARSE_VECTOR_NAME: models.SparseVectorParams(modifier=models.Modifier.IDF)
         },
     )
+    ensure_payload_indexes(resolved_collection, force=True)
     return True
 
 

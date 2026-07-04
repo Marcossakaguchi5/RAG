@@ -50,8 +50,13 @@ class PointPreview(BaseModel):
     id: str
     document_id: str
     document_name: str
+    file_name: str = ""
     page_number: int
     ordinal: int
+    chunk_index: int = 0
+    chunk_total: int = 0
+    word_count: int = 0
+    char_count: int = 0
     content: str
 
 

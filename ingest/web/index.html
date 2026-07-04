@@ -64,7 +64,7 @@
             <p class="section-label">Ingestão</p>
             <h2>Adicionar documentos</h2>
           </div>
-          <p>PDFs são extraídos por página, divididos em chunks e enviados ao Qdrant com vetores dense e sparse.</p>
+          <p>PDFs são extraídos com Docling, divididos em chunks dinâmicos e enviados ao Qdrant com vetores dense e sparse.</p>
         </div>
 
         <form id="upload-form" class="upload-form">
@@ -141,10 +141,17 @@
             </label>
             <button class="button primary" type="submit">Buscar</button>
           </div>
-          <label class="relevance-field">
-            <span>Chunks relevantes <small>(opcional — IDs separados por vírgula para calcular métricas)</small></span>
-            <input id="relevant-ids" name="relevant-ids" type="text" placeholder="Cole os IDs dos chunks que deveriam aparecer" />
-          </label>
+          <div class="relevance-field">
+            <label>
+              <span>Chunks relevantes <small>(opcional - marque nos resultados ou cole IDs separados por vírgula)</small></span>
+              <input id="relevant-ids" name="relevant-ids" type="text" placeholder="IDs dos chunks que deveriam aparecer" />
+            </label>
+            <div class="relevance-actions">
+              <span id="relevant-count" class="muted">0 marcados</span>
+              <button id="recompute-metrics" class="button ghost" type="button" disabled>Recalcular métricas</button>
+              <button id="clear-relevance" class="button ghost" type="button" disabled>Limpar</button>
+            </div>
+          </div>
         </form>
 
         <p id="search-message" class="notice" hidden></p>

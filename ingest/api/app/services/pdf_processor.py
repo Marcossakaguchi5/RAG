@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 
 
 @dataclass(frozen=True)
@@ -27,6 +27,11 @@ def _word_count(text: str) -> int:
     return len(re.findall(r"\S+", text))
 
 
+def _has_enough_text(text: str) -> bool:
+    settings = get_settings()
+    return len(_normalize_text(text)) >= settings.docling_ocr_min_text_chars
+
+
 def _pdf_page_count(content: bytes) -> int:
     try:
         reader = PdfReader(io.BytesIO(content))
@@ -37,30 +42,52 @@ def _pdf_page_count(content: bytes) -> int:
         raise ValueError("Não foi possível abrir o PDF.") from error
 
 
-def _extract_with_pypdf(content: bytes) -> str:
-    try:
-        reader = PdfReader(io.BytesIO(content))
-        if reader.is_encrypted:
-            reader.decrypt("")
-    except Exception as error:
-        raise ValueError("Não foi possível abrir o PDF.") from error
+def _ocr_languages(settings: Settings) -> list[str]:
+    return [language.strip() for language in settings.docling_ocr_languages.split(",") if language.strip()]
 
-    pages: list[str] = []
-    for page_number, page in enumerate(reader.pages, start=1):
+
+def _docling_converter(settings: Settings, use_ocr: bool):
+    from docling.document_converter import DocumentConverter
+
+    try:
+        from docling.datamodel.base_models import InputFormat
+        from docling.datamodel.pipeline_options import EasyOcrOptions, PdfPipelineOptions
+        from docling.document_converter import PdfFormatOption
+    except ImportError:
+        return DocumentConverter()
+
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.do_ocr = use_ocr
+    if use_ocr:
         try:
-            text = _normalize_text(page.extract_text() or "")
-        except Exception as error:
-            raise ValueError(f"Não foi possível extrair o texto da página {page_number}.") from error
-        if text:
-            pages.append(text)
-    return "\n\n".join(pages)
+            pipeline_options.ocr_options = EasyOcrOptions(
+                lang=_ocr_languages(settings),
+                force_full_page_ocr=settings.docling_ocr_force_full_page,
+            )
+        except TypeError:
+            ocr_options = EasyOcrOptions()
+            if hasattr(ocr_options, "lang"):
+                ocr_options.lang = _ocr_languages(settings)
+            if hasattr(ocr_options, "force_full_page_ocr"):
+                ocr_options.force_full_page_ocr = settings.docling_ocr_force_full_page
+            pipeline_options.ocr_options = ocr_options
+
+    return DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
+        }
+    )
 
 
-def _extract_with_docling(content: bytes) -> str:
+def _extract_with_docling(content: bytes, use_ocr: bool = False) -> str:
     settings = get_settings()
-    os.environ.setdefault("DOCLING_ARTIFACTS_PATH", settings.docling_artifacts_path)
+    artifacts_path = settings.docling_artifacts_path.strip()
+    if artifacts_path:
+        os.environ["DOCLING_ARTIFACTS_PATH"] = artifacts_path
+    else:
+        os.environ.pop("DOCLING_ARTIFACTS_PATH", None)
     try:
-        from docling.document_converter import DocumentConverter
+        converter = _docling_converter(settings, use_ocr)
     except ImportError as error:
         raise ValueError("Docling não está instalado na imagem da API de ingestão.") from error
 
@@ -68,7 +95,6 @@ def _extract_with_docling(content: bytes) -> str:
         pdf_path = Path(temporary_dir) / "document.pdf"
         pdf_path.write_bytes(content)
         try:
-            converter = DocumentConverter()
             result = converter.convert(str(pdf_path))
             document = result.document
             markdown_getter = getattr(document, "export_to_markdown", None)
@@ -78,7 +104,8 @@ def _extract_with_docling(content: bytes) -> str:
                 text_getter = getattr(document, "export_to_text", None)
                 text = text_getter() if text_getter is not None else str(document)
         except Exception as error:
-            raise ValueError("Docling não conseguiu extrair o conteúdo do PDF.") from error
+            detail = " com OCR" if use_ocr else ""
+            raise ValueError(f"Docling não conseguiu extrair o conteúdo do PDF{detail}.") from error
 
     return text.strip()
 
@@ -86,14 +113,34 @@ def _extract_with_docling(content: bytes) -> str:
 def _extract_text(content: bytes) -> tuple[int, str]:
     page_count = _pdf_page_count(content)
     settings = get_settings()
-    if settings.docling_enabled:
-        text = _extract_with_docling(content)
-    else:
-        text = _extract_with_pypdf(content)
+    errors: list[str] = []
+    text = ""
 
-    if not text:
-        raise ValueError("O PDF não possui texto extraível. PDFs digitalizados exigem OCR.")
-    return page_count, text
+    if settings.docling_enabled:
+        try:
+            text = _extract_with_docling(content, use_ocr=False)
+        except ValueError as error:
+            errors.append(str(error))
+
+    if _has_enough_text(text):
+        return page_count, text
+
+    if settings.docling_enabled and settings.docling_ocr_enabled:
+        try:
+            text = _extract_with_docling(content, use_ocr=True)
+        except ValueError as error:
+            errors.append(str(error))
+
+    if text:
+        return page_count, text
+
+    if errors:
+        raise ValueError(
+            "Não foi possível extrair texto do PDF. "
+            "Se ele for digitalizado, verifique se o OCR do Docling está disponível. "
+            f"Detalhes: {' | '.join(errors)}"
+        )
+    raise ValueError("O PDF não possui texto extraível. PDFs digitalizados exigem OCR.")
 
 
 def _paragraph_blocks(text: str) -> list[str]:
@@ -179,6 +226,10 @@ def _dynamic_chunks(text: str, page_count: int) -> list[ChunkDraft]:
     return chunks
 
 
+def chunk_text(text: str, page_count: int = 1) -> list[ChunkDraft]:
+    return _dynamic_chunks(text, max(page_count, 1))
+
+
 def extract_pdf_chunks(content: bytes) -> tuple[int, list[ChunkDraft]]:
     page_count, text = _extract_text(content)
-    return page_count, _dynamic_chunks(text, page_count)
+    return page_count, chunk_text(text, page_count)

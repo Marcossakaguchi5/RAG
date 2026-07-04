@@ -203,8 +203,13 @@ def list_points(
                 id=str(point.id),
                 document_id=str((point.payload or {}).get("document_id", "")),
                 document_name=str((point.payload or {}).get("document_name", "Documento sem nome")),
+                file_name=str((point.payload or {}).get("file_name", "")),
                 page_number=int((point.payload or {}).get("page_number", 0)),
                 ordinal=int((point.payload or {}).get("ordinal", 0)),
+                chunk_index=int((point.payload or {}).get("chunk_index", 0)),
+                chunk_total=int((point.payload or {}).get("chunk_total", 0)),
+                word_count=int((point.payload or {}).get("word_count", 0)),
+                char_count=int((point.payload or {}).get("char_count", 0)),
                 content=str((point.payload or {}).get("content", "")),
             )
             for point in points

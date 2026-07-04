@@ -15,8 +15,12 @@ from common import (
 )
 
 
-def point_id_for_doc(doc_id: str) -> str:
-    return str(uuid5(NAMESPACE_URL, f"sciq:{doc_id}"))
+def point_id_for_chunk(doc_id: str, ordinal: int) -> str:
+    return str(uuid5(NAMESPACE_URL, f"sciq:{doc_id}:chunk:{ordinal}"))
+
+
+def chunk_id_for_doc(doc_id: str, ordinal: int) -> str:
+    return f"{doc_id}_chunk_{ordinal:04d}"
 
 
 def recreate_collection(collection_name: str) -> None:
@@ -41,6 +45,7 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
     from qdrant_client import models
 
     from app.services.embeddings import get_embedding_service
+    from app.services.pdf_processor import chunk_text
     from app.services.sparse_embeddings import get_sparse_embedding_service
     from app.services.vector_store import DENSE_VECTOR_NAME, SPARSE_VECTOR_NAME, ensure_collection, upsert_chunks
 
@@ -60,36 +65,69 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
 
     indexed = 0
     for batch in iter_batches(rows, batch_size):
-        texts = [str(row["text"]) for row in batch]
+        chunk_rows = []
+        for row in batch:
+            doc_id = str(row["doc_id"])
+            text = str(row["text"])
+            drafts = chunk_text(text, page_count=1)
+            for draft in drafts:
+                chunk_rows.append(
+                    {
+                        "doc_id": doc_id,
+                        "chunk_id": chunk_id_for_doc(doc_id, draft.ordinal),
+                        "text": draft.content,
+                        "ordinal": draft.ordinal,
+                        "word_count": draft.word_count,
+                        "chunk_total": len(drafts),
+                    }
+                )
+
+        texts = [str(row["text"]) for row in chunk_rows]
         dense_vectors = embedding_service.encode(texts)
         sparse_vectors = sparse_service.encode_documents(texts)
         points = []
-        for row, dense_vector, sparse_vector in zip(batch, dense_vectors, sparse_vectors, strict=True):
+        for row, dense_vector, sparse_vector in zip(chunk_rows, dense_vectors, sparse_vectors, strict=True):
             doc_id = str(row["doc_id"])
+            chunk_id = str(row["chunk_id"])
             text = str(row["text"])
             points.append(
                 models.PointStruct(
-                    id=point_id_for_doc(doc_id),
+                    id=point_id_for_chunk(doc_id, int(row["ordinal"])),
                     vector={
                         DENSE_VECTOR_NAME: dense_vector,
                         SPARSE_VECTOR_NAME: sparse_vector,
                     },
                     payload={
-                        "chunk_id": doc_id,
+                        "schema_version": 2,
+                        "source_type": "dataset",
+                        "chunk_id": chunk_id,
+                        "point_id": point_id_for_chunk(doc_id, int(row["ordinal"])),
                         "collection_name": collection_name,
                         "document_id": doc_id,
                         "document_name": doc_id,
                         "page_number": 1,
-                        "ordinal": 0,
+                        "page_start": 1,
+                        "page_end": 1,
+                        "ordinal": int(row["ordinal"]),
+                        "chunk_ordinal": int(row["ordinal"]),
+                        "chunk_index": int(row["ordinal"]) + 1,
+                        "chunk_total": int(row["chunk_total"]),
+                        "is_first_chunk": int(row["ordinal"]) == 0,
+                        "is_last_chunk": int(row["ordinal"]) == int(row["chunk_total"]) - 1,
                         "content": text,
+                        "word_count": int(row["word_count"]),
+                        "chunk_word_count": int(row["word_count"]),
+                        "char_count": len(text),
+                        "chunk_char_count": len(text),
+                        "chunking_strategy": "dynamic_blocks",
                         "dataset": "sciq",
                         "source_field": "support",
                     },
                 )
             )
         upsert_chunks(points, collection_name)
-        indexed += len(points)
-        print(f"Indexados {indexed}/{len(rows)} supports...")
+        indexed += len(chunk_rows)
+        print(f"Indexados {indexed} chunks de {len(rows)} supports...")
 
     return indexed
 
