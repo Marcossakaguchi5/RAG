@@ -18,6 +18,7 @@ Abra `http://localhost:8081`. A API do chat fica em `http://localhost:8011/docs`
 - Escolha da collection usada como base.
 - Busca por embedding dense, BM25 sparse ou hibrida.
 - Reranker opcional sobre um conjunto maior de candidatos.
+- Fluxo RAG orquestrado com LangGraph.
 - Resposta gerada por API compativel com OpenAI, citando as fontes recuperadas.
 - Painel RAGAS com Faithfulness, Answer relevancy, Context precision, Context recall e Answer correctness.
 
@@ -30,10 +31,7 @@ O chat nao indexa documentos diretamente. Ele chama a API do `ingest` configurad
 A geracao e o juiz RAGAS usam:
 
 ```text
-LLM_BASE_URL
 LLM_API_KEY
-LLM_MODEL
-RAGAS_MODEL
 ```
 
-`RAGAS_MODEL` vazio reutiliza `LLM_MODEL`.
+`LLM_BASE_URL`, `LLM_MODEL`, temperatura, limite de tokens e contexto máximo têm defaults no código e só precisam entrar no ambiente se você quiser sobrescrever.

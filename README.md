@@ -2,8 +2,8 @@
 
 Projeto de Recuperação Aumentada por Geração (RAG) dividido em dois módulos independentes:
 
-- `ingest/`: recebe PDFs, extrai texto, cria chunks, gera índices dense e sparse, e disponibiliza busca semântica/BM25/híbrida.
-- `chat/`: consome as bases criadas pelo `ingest`, recupera contexto, opcionalmente aplica reranker, gera respostas com uma API compatível com OpenAI e calcula métricas RAGAS.
+- `ingest/`: recebe PDFs, extrai conteúdo com Docling, cria chunks dinâmicos, gera índices dense e sparse, e disponibiliza busca semântica/BM25/híbrida.
+- `chat/`: consome as bases criadas pelo `ingest`, recupera contexto, executa o fluxo RAG com LangGraph, opcionalmente aplica reranker, gera respostas com uma API compatível com OpenAI e calcula métricas RAGAS.
 
 ## Arquitetura
 
@@ -13,6 +13,8 @@ PDFs
   v
 ingest/
   FastAPI + MySQL + MinIO + Qdrant
+  - extração de PDF com Docling
+  - chunks dinâmicos por blocos/parágrafos
   - PDF original no MinIO
   - metadados e chunks no MySQL
   - vetores dense/sparse no Qdrant
@@ -21,6 +23,7 @@ ingest/
 chat/
   FastAPI + interface web
   - consulta collections do ingest
+  - orquestra o RAG com LangGraph
   - recupera fontes
   - gera resposta via LLM
   - avalia com RAGAS
@@ -48,7 +51,7 @@ chat/
 
 - Docker
 - Docker Compose
-- Acesso à internet na primeira execução do `ingest`, para baixar os modelos de embedding e sparse retrieval
+- Acesso à internet na primeira execução do `ingest`, para baixar modelos de embedding, sparse retrieval e artefatos do Docling
 - Uma chave de LLM compatível com a API da OpenAI/OpenRouter para usar o `chat`
 
 ## Subir o ambiente local
@@ -88,16 +91,15 @@ Serviços principais:
 | Interface do chat | http://localhost:8081 |
 | API do chat | http://localhost:8011/docs |
 
-O `chat` usa `INGEST_API_URL` para chamar a API de ingestão e `INGEST_APP_PASSWORD` para autenticar nessa API. Para geração de resposta e avaliação RAGAS, configure no `chat/.env`:
+O `chat` usa `INGEST_API_URL` para chamar a API de ingestão e `INGEST_APP_PASSWORD` para autenticar nessa API. Para geração de resposta, configure no `chat/.env`:
 
 ```text
-LLM_BASE_URL=
+CHAT_APP_PASSWORD=
+INGEST_APP_PASSWORD=
 LLM_API_KEY=
-LLM_MODEL=
-RAGAS_MODEL=
 ```
 
-`RAGAS_MODEL` pode ficar vazio para reutilizar `LLM_MODEL`.
+Os demais valores, como URL local do ingest, modelo LLM, temperatura, tokens e timeout, têm defaults no código/compose e só precisam ser sobrescritos em casos específicos.
 
 ## Fluxo de uso
 
