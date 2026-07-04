@@ -1,4 +1,5 @@
 const byId = (id) => document.getElementById(id);
+const REQUEST_TIMEOUT_MS = 30000;
 
 const state = {
   collectionStorageKey: "rag-chat-selected-collection",
@@ -40,7 +41,19 @@ const api = {
     if (accessToken && path !== "/api/auth/login") {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
-    const response = await fetch(path, { ...options, headers });
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    let response;
+    try {
+      response = await fetch(path, { ...options, headers, signal: controller.signal });
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw new Error("A API demorou para responder. Tente novamente em alguns segundos.");
+      }
+      throw new Error("Nao foi possivel conectar com a API.");
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401 && path !== "/api/auth/login" && auth.token === accessToken) {
