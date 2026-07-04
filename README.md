@@ -124,9 +124,11 @@ No módulo `chat`, o reranker pode refinar os candidatos antes de montar o conte
 O projeto inclui dois caminhos de avaliação:
 
 - No `ingest`, métricas clássicas de recuperação como Precision@K, Recall@K, MAP, NDCG@K e MRR, desde que exista ground truth de chunks relevantes.
-- No `chat`, relatório RAGAS com Faithfulness, Answer relevancy, Context precision, Context recall e Answer correctness.
+- No `chat`, relatório RAGAS oficial com Faithfulness, Answer relevancy, Context precision, Context recall e Factual correctness.
 
 Há também um benchmark SciQ em `ingest/api/benchmarks/sciq/`.
+
+Os comandos consolidados para SciQ, ground truth manual do `ingest` e ground truth RAGAS do `chat` estão em [BENCHMARKS.md](/home/marcelo/Documents/ciag/unesp/finalRag/RAG/BENCHMARKS.md).
 
 ## Comandos úteis
 
