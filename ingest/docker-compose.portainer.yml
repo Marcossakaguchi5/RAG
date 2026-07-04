@@ -1,5 +1,6 @@
 services:
   mysql:
+    container_name: RI-ingest-dep-mysql
     image: mysql:8.4
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -19,6 +20,7 @@ services:
       retries: 20
 
   minio:
+    container_name: RI-ingest-dep-minio
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -31,6 +33,7 @@ services:
       - internal
 
   qdrant:
+    container_name: RI-ingest-dep-qdrant
     image: qdrant/qdrant:v1.13.3
     restart: unless-stopped
     volumes:
@@ -39,6 +42,7 @@ services:
       - internal
 
   ingest-api:
+    container_name: RI-ingest-api
     build:
       context: ./api
     restart: unless-stopped
@@ -80,6 +84,7 @@ services:
       - internal
 
   ingest-web:
+    container_name: RI-ingest-web
     build:
       context: ./web
     restart: unless-stopped

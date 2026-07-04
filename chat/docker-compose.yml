@@ -1,6 +1,6 @@
 services:
   chat-api:
-    container_name: chat-api
+    container_name: RI-chat-api
     build:
       context: ./api
     restart: unless-stopped
@@ -15,7 +15,7 @@ services:
       - "${CHAT_API_PORT:-8011}:8000"
 
   chat-web:
-    container_name: chat-web
+    container_name: RI-chat-web
     build:
       context: ./web
     restart: unless-stopped

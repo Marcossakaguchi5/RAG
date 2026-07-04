@@ -1,5 +1,6 @@
 services:
   chat-api:
+    container_name: RI-chat-api
     build:
       context: ./api
     restart: unless-stopped
@@ -26,6 +27,7 @@ services:
       - internal
 
   chat-web:
+    container_name: RI-chat-web
     build:
       context: ./web
     restart: unless-stopped

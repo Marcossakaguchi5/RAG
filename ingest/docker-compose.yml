@@ -1,6 +1,6 @@
 services:
   mysql:
-    container_name: ingest-dep-mysql
+    container_name:  RI-ingest-dep-mysql
     image: mysql:latest
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -20,7 +20,7 @@ services:
       retries: 20
 
   minio:
-    container_name: ingest-dep-minio
+    container_name:  RI-ingest-dep-minio
     image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -34,7 +34,7 @@ services:
       - minio_data:/data
 
   qdrant:
-    container_name: ingest-dep-qdrant
+    container_name:  RI-ingest-dep-qdrant
     image: qdrant/qdrant:latest
     restart: unless-stopped
     ports:
@@ -44,7 +44,7 @@ services:
       - qdrant_data:/qdrant/storage
 
   ingest-api:
-    container_name: ingest-api
+    container_name:  RI-ingest-api
     build:
       context: ./api
     restart: unless-stopped
@@ -82,7 +82,7 @@ services:
       - model_cache:/models
 
   ingest-web:
-    container_name: ingest-web
+    container_name:  RI-ingest-web
     build:
       context: ./web
     restart: unless-stopped
