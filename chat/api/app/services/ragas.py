@@ -1,72 +1,190 @@
+import math
+import os
+from functools import lru_cache
+from typing import Any, Callable
+
 from app.core.config import get_settings
 from app.schemas import RagasMetric, RagasReport, RagSource
-from app.services.llm import get_llm_client
 
 
-def _context_block(sources: list[RagSource]) -> str:
-    return "\n\n".join(
-        f"[{source.rank}] {source.document_name} p.{source.page_number}\n{source.content}"
-        for source in sources
-    )
+def _contexts(sources: list[RagSource], max_chars: int) -> list[str]:
+    return [source.content.strip()[:max_chars] for source in sources if source.content.strip()]
 
 
-def _metric(name: str, raw: object, reason: object = None) -> RagasMetric:
+def _score_value(result: Any) -> tuple[float | None, str | None]:
+    value = getattr(result, "value", result)
+    reason = getattr(result, "reason", None)
     try:
-        value = float(raw)
+        numeric = float(value)
     except (TypeError, ValueError):
-        value = None
-    if value is not None:
-        value = max(0.0, min(1.0, value))
-    return RagasMetric(name=name, value=value, reason=str(reason) if reason else None)
+        numeric = None
+    if numeric is not None:
+        if math.isnan(numeric):
+            numeric = None
+        else:
+            numeric = max(0.0, min(1.0, numeric))
+    return numeric, str(reason) if reason else None
+
+
+def _metric(name: str, result: Any, reason: str | None = None) -> RagasMetric:
+    value, result_reason = _score_value(result)
+    return RagasMetric(name=name, value=value, reason=reason or result_reason)
+
+
+class OfficialRagasEvaluator:
+    def __init__(self) -> None:
+        settings = get_settings()
+        if not settings.llm_api_key:
+            raise RuntimeError("LLM_API_KEY nao configurada para calcular RAGAS oficial.")
+
+        try:
+            from openai import AsyncOpenAI
+            from ragas.embeddings import HuggingFaceEmbeddings
+            from ragas.llms import llm_factory
+            from ragas.metrics.collections import (
+                AnswerRelevancy,
+                ContextPrecision,
+                ContextRecall,
+                ContextUtilization,
+                FactualCorrectness,
+                Faithfulness,
+            )
+        except ImportError as error:
+            raise RuntimeError(
+                "Dependencias oficiais do RAGAS nao instaladas. "
+                "Rebuild o chat-api com requirements.txt atualizado."
+            ) from error
+
+        os.environ.setdefault("RAGAS_DO_NOT_TRACK", "true")
+        self.max_context_chars = settings.ragas_max_context_characters
+        client = AsyncOpenAI(
+            api_key=settings.llm_api_key,
+            base_url=settings.llm_base_url,
+            default_headers={
+                "HTTP-Referer": "http://localhost:8081",
+                "X-Title": "RAG Chat",
+            },
+        )
+        self.llm = llm_factory(
+            settings.resolved_ragas_model,
+            client=client,
+        )
+        self.embeddings = HuggingFaceEmbeddings(
+            model=settings.ragas_embedding_model,
+            device=settings.ragas_embedding_device or None,
+            normalize_embeddings=True,
+        )
+        self.faithfulness = Faithfulness(llm=self.llm)
+        self.answer_relevancy = AnswerRelevancy(llm=self.llm, embeddings=self.embeddings)
+        self.context_precision = ContextPrecision(llm=self.llm)
+        self.context_utilization = ContextUtilization(llm=self.llm)
+        self.context_recall = ContextRecall(llm=self.llm)
+        self.factual_correctness = FactualCorrectness(llm=self.llm)
+
+    def evaluate(
+        self,
+        query: str,
+        answer: str,
+        sources: list[RagSource],
+        reference_answer: str = "",
+    ) -> RagasReport:
+        contexts = _contexts(sources, self.max_context_chars)
+        if not contexts:
+            return RagasReport(evaluated=False, message="Sem contextos recuperados para avaliar com RAGAS oficial.")
+
+        reference = reference_answer.strip()
+        calls: list[tuple[str, Callable[[], Any], str | None]] = [
+            (
+                "Faithfulness",
+                lambda: self.faithfulness.score(
+                    user_input=query,
+                    response=answer,
+                    retrieved_contexts=contexts,
+                ),
+                None,
+            ),
+            (
+                "Answer relevancy",
+                lambda: self.answer_relevancy.score(
+                    user_input=query,
+                    response=answer,
+                ),
+                None,
+            ),
+        ]
+
+        if reference:
+            calls.extend(
+                [
+                    (
+                        "Context precision",
+                        lambda: self.context_precision.score(
+                            user_input=query,
+                            reference=reference,
+                            retrieved_contexts=contexts,
+                        ),
+                        None,
+                    ),
+                    (
+                        "Context recall",
+                        lambda: self.context_recall.score(
+                            user_input=query,
+                            reference=reference,
+                            retrieved_contexts=contexts,
+                        ),
+                        None,
+                    ),
+                    (
+                        "Factual correctness",
+                        lambda: self.factual_correctness.score(
+                            response=answer,
+                            reference=reference,
+                        ),
+                        None,
+                    ),
+                ]
+            )
+        else:
+            calls.append(
+                (
+                    "Context precision",
+                    lambda: self.context_utilization.score(
+                        user_input=query,
+                        response=answer,
+                        retrieved_contexts=contexts,
+                    ),
+                    "Sem resposta de referencia; RAGAS oficial calculou ContextUtilization como proxy.",
+                )
+            )
+            calls.extend(
+                [
+                    (
+                        "Context recall",
+                        None,
+                        "Requer resposta de referencia no RAGAS oficial.",
+                    ),
+                    (
+                        "Factual correctness",
+                        None,
+                        "Requer resposta de referencia no RAGAS oficial.",
+                    ),
+                ]
+            )
+
+        metrics = []
+        for name, scorer, reason in calls:
+            if scorer is None:
+                metrics.append(RagasMetric(name=name, value=None, reason=reason))
+                continue
+            metrics.append(_metric(name, scorer(), reason))
+
+        return RagasReport(evaluated=True, message="Metricas calculadas com a biblioteca oficial ragas.", metrics=metrics)
+
+
+@lru_cache
+def get_official_ragas_evaluator() -> OfficialRagasEvaluator:
+    return OfficialRagasEvaluator()
 
 
 def evaluate_ragas(query: str, answer: str, sources: list[RagSource], reference_answer: str = "") -> RagasReport:
-    if not sources:
-        return RagasReport(evaluated=False, message="Sem contextos recuperados para avaliar.")
-
-    settings = get_settings()
-    llm = get_llm_client()
-    prompt = f"""
-Avalie uma resposta RAG em portugues usando criterios compatíveis com RAGAS.
-Retorne apenas JSON valido com chaves numericas de 0 a 1 e justificativas curtas:
-faithfulness, faithfulness_reason, answer_relevancy, answer_relevancy_reason,
-context_precision, context_precision_reason, context_recall, context_recall_reason,
-answer_correctness, answer_correctness_reason.
-
-Pergunta:
-{query}
-
-Resposta gerada:
-{answer}
-
-Contextos recuperados:
-{_context_block(sources)}
-
-Resposta de referencia opcional:
-{reference_answer or "NAO INFORMADA"}
-
-Regras:
-- faithfulness mede se a resposta e sustentada pelos contextos.
-- answer_relevancy mede se a resposta responde diretamente a pergunta.
-- context_precision mede se os contextos usados sao relevantes para a pergunta/resposta.
-- context_recall so deve receber nota alta quando a referencia estiver informada e os contextos cobrirem seus fatos.
-- answer_correctness so deve receber nota alta quando a referencia estiver informada e a resposta concordar com ela.
-- Se nao houver referencia, use null em context_recall e answer_correctness.
-"""
-    data = llm.json_chat(
-        [
-            {"role": "system", "content": "Voce e um avaliador objetivo de sistemas RAG. Responda somente JSON."},
-            {"role": "user", "content": prompt},
-        ],
-        model=settings.resolved_ragas_model,
-    )
-    metrics = [
-        _metric("Faithfulness", data.get("faithfulness"), data.get("faithfulness_reason")),
-        _metric("Answer relevancy", data.get("answer_relevancy"), data.get("answer_relevancy_reason")),
-        _metric("Context precision", data.get("context_precision"), data.get("context_precision_reason")),
-        _metric("Context recall", data.get("context_recall"), data.get("context_recall_reason")),
-        _metric("Answer correctness", data.get("answer_correctness"), data.get("answer_correctness_reason")),
-    ]
-    if not any(metric.value is not None for metric in metrics):
-        return RagasReport(evaluated=False, message="O avaliador RAGAS nao retornou JSON valido.")
-    return RagasReport(evaluated=True, metrics=metrics)
+    return get_official_ragas_evaluator().evaluate(query, answer, sources, reference_answer)

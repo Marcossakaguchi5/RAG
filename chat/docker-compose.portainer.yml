@@ -15,6 +15,12 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:?defina LLM_API_KEY na stack rag-chat}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
       LLM_MODEL: ${LLM_MODEL:-deepseek/deepseek-v4-flash}
+      RAGAS_MODEL: ${RAGAS_MODEL:-}
+      RAGAS_EMBEDDING_MODEL: ${RAGAS_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      RAGAS_EMBEDDING_DEVICE: ${RAGAS_EMBEDDING_DEVICE:-}
+      HF_HOME: /models/huggingface
+    volumes:
+      - chat-model-cache:/models
     networks:
       - internal
 
@@ -41,3 +47,6 @@ networks:
     external: true
   internal:
     driver: bridge
+
+volumes:
+  chat-model-cache:

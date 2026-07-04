@@ -29,6 +29,9 @@ class Settings(BaseSettings):
 
     max_context_characters: int = Field(default=24000, ge=2000)
     ragas_model: str = ""
+    ragas_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    ragas_embedding_device: str = ""
+    ragas_max_context_characters: int = Field(default=6000, ge=500)
 
     @property
     def allowed_origins(self) -> list[str]:

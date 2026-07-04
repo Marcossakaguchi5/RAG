@@ -120,7 +120,7 @@ async function loadCollections(preferredName = state.collectionName) {
 }
 
 function renderMetricShell() {
-  const names = ["Faithfulness", "Answer relevancy", "Context precision", "Context recall", "Answer correctness"];
+  const names = ["Faithfulness", "Answer relevancy", "Context precision", "Context recall", "Factual correctness"];
   byId("ragas-metrics").innerHTML = names.map((name) => `
     <div class="metric"><span>${name}</span><strong>--</strong></div>
   `).join("");
@@ -140,7 +140,7 @@ function renderRagas(report) {
     </div>
   `).join("");
   byId("ragas-note").textContent = report.evaluated
-    ? "Notas de 0 a 1 por juiz LLM no formato das metricas RAGAS."
+    ? report.message || "Notas de 0 a 1 calculadas pela biblioteca oficial ragas."
     : report.message || "Metricas nao calculadas.";
 }
 
