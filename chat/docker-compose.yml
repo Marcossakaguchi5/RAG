@@ -4,11 +4,14 @@ services:
     build:
       context: ./api
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       CORS_ORIGINS: http://localhost:${CHAT_WEB_PORT:-8081}
       INGEST_API_URL: ${INGEST_API_URL:-http://host.docker.internal:8010}
+      CHAT_APP_PASSWORD: ${CHAT_APP_PASSWORD:-alterar-esta-senha}
+      INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD:-alterar-esta-senha}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-deepseek/deepseek-v4-flash}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
