@@ -1,0 +1,49 @@
+services:
+  chat-api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      CORS_ORIGINS: ${CHAT_PUBLIC_URL:-https://chat.136-248-79-252.sslip.io}
+      CHAT_APP_PASSWORD: ${CHAT_APP_PASSWORD:?defina CHAT_APP_PASSWORD na stack rag-chat}
+      CHAT_AUTH_TOKEN_TTL_SECONDS: ${CHAT_AUTH_TOKEN_TTL_SECONDS:-28800}
+
+      INGEST_API_URL: ${INGEST_API_URL:-https://ingest.136-248-79-252.sslip.io}
+      INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD:?defina INGEST_APP_PASSWORD na stack rag-chat}
+      INGEST_REQUEST_TIMEOUT_SECONDS: ${INGEST_REQUEST_TIMEOUT_SECONDS:-90}
+
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_API_KEY: ${LLM_API_KEY:?defina LLM_API_KEY na stack rag-chat}
+      LLM_MODEL: ${LLM_MODEL:-deepseek/deepseek-v4-flash}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-1200}
+
+      MAX_CONTEXT_CHARACTERS: ${MAX_CONTEXT_CHARACTERS:-24000}
+      RAGAS_MODEL: ${RAGAS_MODEL:-}
+      RAGAS_EMBEDDING_MODEL: ${RAGAS_EMBEDDING_MODEL:-text-embedding-3-small}
+    networks:
+      - internal
+
+  chat-web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      - chat-api
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rag-chat.rule=Host(`${CHAT_PUBLIC_HOST:-chat.136-248-79-252.sslip.io}`)"
+      - "traefik.http.routers.rag-chat.entrypoints=websecure"
+      - "traefik.http.routers.rag-chat.tls.certresolver=le"
+      - "traefik.http.services.rag-chat.loadbalancer.server.port=80"
+      - "traefik.docker.network=web"
+
+networks:
+  web:
+    external: true
+  internal:
+    driver: bridge
