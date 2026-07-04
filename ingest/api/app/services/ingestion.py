@@ -26,13 +26,13 @@ def document_to_schema(document: Document) -> DocumentOut:
     )
 
 
-async def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> DocumentOut:
+def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> DocumentOut:
     collection_name = normalize_collection_name(collection_name)
     filename = Path(upload.filename or "documento.pdf").name
     if not filename.lower().endswith(".pdf"):
         raise ValueError("Apenas arquivos PDF são aceitos nesta etapa.")
 
-    data = await upload.read()
+    data = upload.file.read()
     if len(data) > get_settings().max_upload_bytes:
         raise ValueError("O arquivo excede o limite de 50 MB.")
     if not data.startswith(b"%PDF"):

@@ -38,16 +38,17 @@ const auth = {
 
 const api = {
   async request(path, options = {}) {
-    const headers = new Headers(options.headers || {});
+    const { timeoutMs = REQUEST_TIMEOUT_MS, ...fetchOptions } = options;
+    const headers = new Headers(fetchOptions.headers || {});
     const accessToken = auth.token;
     if (accessToken && path !== "/api/auth/login") {
       headers.set("Authorization", `Bearer ${accessToken}`);
     }
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
     let response;
     try {
-      response = await fetch(path, { ...options, headers, signal: controller.signal });
+      response = await fetch(path, { ...fetchOptions, headers, signal: controller.signal });
     } catch (error) {
       if (error.name === "AbortError") {
         throw new Error("A API demorou para responder. Tente novamente em alguns segundos.");
@@ -97,7 +98,7 @@ const api = {
       body: JSON.stringify(payload),
     });
   },
-  upload(data) { return this.request("/api/documents/upload", { method: "POST", body: data }); },
+  upload(data) { return this.request("/api/documents/upload", { method: "POST", timeoutMs: 900000, body: data }); },
 };
 
 const escapeHtml = (value = "") => String(value)

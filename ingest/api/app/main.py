@@ -1,6 +1,7 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from threading import Lock
 
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,6 +34,7 @@ from app.services.storage import ensure_bucket
 from app.services.vector_store import ensure_collection, preview_points
 
 logger = logging.getLogger(__name__)
+ingestion_lock = Lock()
 settings = get_settings()
 
 
@@ -138,35 +140,44 @@ def create_collection(payload: CollectionIn, session: Session = Depends(get_sess
 
 
 @api_router.post("/documents/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
-async def upload_documents(
+def upload_documents(
     files: list[UploadFile] = File(...),
     collection_name: str = Form(default=settings.qdrant_collection),
     session: Session = Depends(get_session),
 ) -> UploadResponse:
+    if not ingestion_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já existe uma ingestão em andamento. Tente novamente quando ela terminar.",
+        )
+
     try:
-        collection_name = ensure_collection_ready(collection_name, session)
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    ensure_collection_record(session, collection_name)
-
-    documents: list[DocumentOut] = []
-    errors: list[UploadError] = []
-    for file in files:
         try:
-            documents.append(await ingest_pdf(file, session, collection_name))
+            collection_name = ensure_collection_ready(collection_name, session)
         except ValueError as error:
-            errors.append(UploadError(filename=file.filename or "arquivo", detail=str(error)))
-        except Exception:
-            logger.exception("Falha ao ingerir %s", file.filename)
-            errors.append(
-                UploadError(filename=file.filename or "arquivo", detail="Não foi possível processar o arquivo.")
-            )
-        finally:
-            await file.close()
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        ensure_collection_record(session, collection_name)
 
-    if not documents and errors:
-        raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
-    return UploadResponse(documents=documents, errors=errors)
+        documents: list[DocumentOut] = []
+        errors: list[UploadError] = []
+        for file in files:
+            try:
+                documents.append(ingest_pdf(file, session, collection_name))
+            except ValueError as error:
+                errors.append(UploadError(filename=file.filename or "arquivo", detail=str(error)))
+            except Exception:
+                logger.exception("Falha ao ingerir %s", file.filename)
+                errors.append(
+                    UploadError(filename=file.filename or "arquivo", detail="Não foi possível processar o arquivo.")
+                )
+            finally:
+                file.file.close()
+
+        if not documents and errors:
+            raise HTTPException(status_code=400, detail=[error.model_dump() for error in errors])
+        return UploadResponse(documents=documents, errors=errors)
+    finally:
+        ingestion_lock.release()
 
 
 @api_router.get("/documents", response_model=list[DocumentOut])
