@@ -1,4 +1,5 @@
 import io
+import logging
 import math
 import os
 import re
@@ -9,6 +10,8 @@ from pathlib import Path
 from pypdf import PdfReader
 
 from app.core.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -105,7 +108,16 @@ def _extract_with_docling(content: bytes, use_ocr: bool = False) -> str:
                 text = text_getter() if text_getter is not None else str(document)
         except Exception as error:
             detail = " com OCR" if use_ocr else ""
-            raise ValueError(f"Docling não conseguiu extrair o conteúdo do PDF{detail}.") from error
+            logger.exception("Docling falhou ao extrair PDF%s", detail)
+            error_detail = str(error).strip()
+            if len(error_detail) > 500:
+                error_detail = f"{error_detail[:500]}..."
+            message = f"Docling não conseguiu extrair o conteúdo do PDF{detail}."
+            if error_detail:
+                message = f"{message} Causa: {error.__class__.__name__}: {error_detail}"
+            else:
+                message = f"{message} Causa: {error.__class__.__name__}."
+            raise ValueError(message) from error
 
     return text.strip()
 
