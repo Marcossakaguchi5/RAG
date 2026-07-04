@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     sparse_language: str = "portuguese"
     fastembed_cache_dir: str = "/models/fastembed"
 
+    docling_enabled: bool = True
+    docling_artifacts_path: str = "/models/docling"
+    chunk_min_words: int = Field(default=180, ge=1)
     chunk_size_words: int = 700
     chunk_overlap_words: int = 100
     max_upload_bytes: int = 50 * 1024 * 1024
