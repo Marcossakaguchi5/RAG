@@ -29,7 +29,6 @@ class Settings(BaseSettings):
 
     max_context_characters: int = Field(default=24000, ge=2000)
     ragas_model: str = ""
-    ragas_embedding_model: str = "text-embedding-3-small"
 
     @property
     def allowed_origins(self) -> list[str]:
