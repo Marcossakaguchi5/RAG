@@ -53,8 +53,6 @@ A geracao e o RAGAS oficial usam:
 
 ```text
 LLM_API_KEY
-RAGAS_MODEL
-RAGAS_EMBEDDING_MODEL
 ```
 
-`RAGAS_MODEL` e opcional; se ficar vazio, usa `LLM_MODEL`. O embedding padrao do RAGAS oficial e `sentence-transformers/all-MiniLM-L6-v2`.
+`LLM_BASE_URL` e `LLM_MODEL` continuam no `.env` para voce escolher o provedor/modelo. O RAGAS oficial usa o mesmo modelo por padrao e o embedding local `sentence-transformers/all-MiniLM-L6-v2`.

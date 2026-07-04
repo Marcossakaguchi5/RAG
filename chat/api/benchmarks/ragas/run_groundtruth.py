@@ -224,7 +224,7 @@ def main() -> None:
     parser.add_argument(
         "--site-ragas",
         action="store_true",
-        help="Tambem executa o avaliador exploratorio do site. Para artigo, use evaluate_official.py.",
+        help="Tambem salva o relatorio RAGAS oficial retornado pelo site. Para artigo, use evaluate_official.py em lote.",
     )
     parser.add_argument("--no-reranker", dest="use_reranker", action="store_false")
     parser.set_defaults(use_reranker=True)
