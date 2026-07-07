@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.schemas import RagRequest, RagResponse, RagSource, RagasReport, SearchHit
+from app.schemas import RagRequest, RagResponse, RagSource, RagasEvaluationRequest, RagasReport, SearchHit
 from app.services.answering import generate_answer
 from app.services.ingest_client import get_ingest_client
 from app.services.ragas import evaluate_ragas
@@ -55,21 +55,32 @@ def _answer(state: RagGraphState) -> RagGraphState:
     return {"answer": answer}
 
 
+def run_ragas_evaluation(payload: RagasEvaluationRequest) -> RagasReport:
+    try:
+        return evaluate_ragas(
+            payload.query,
+            payload.answer,
+            payload.sources,
+            payload.reference_answer.strip(),
+        )
+    except Exception as error:
+        logger.exception("Falha ao avaliar RAGAS")
+        return RagasReport(evaluated=False, message=f"Nao foi possivel calcular RAGAS: {error}")
+
+
 def _evaluate(state: RagGraphState) -> RagGraphState:
     payload = state["payload"]
     if not payload.evaluate_ragas:
         return {"ragas": RagasReport(evaluated=False, message="A avaliacao RAGAS foi desativada.")}
 
-    try:
-        ragas = evaluate_ragas(
-            payload.query,
-            state.get("answer", ""),
-            state.get("sources", []),
-            payload.reference_answer.strip(),
+    ragas = run_ragas_evaluation(
+        RagasEvaluationRequest(
+            query=payload.query,
+            answer=state.get("answer", ""),
+            sources=state.get("sources", []),
+            reference_answer=payload.reference_answer,
         )
-    except Exception as error:
-        logger.exception("Falha ao avaliar RAGAS")
-        ragas = RagasReport(evaluated=False, message=f"Nao foi possivel calcular RAGAS: {error}")
+    )
     return {"ragas": ragas}
 
 

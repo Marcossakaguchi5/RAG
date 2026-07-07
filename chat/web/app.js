@@ -1,9 +1,12 @@
 const byId = (id) => document.getElementById(id);
 const REQUEST_TIMEOUT_MS = 30000;
+const RAGAS_TIMEOUT_MS = 600000;
 
 const state = {
   collectionStorageKey: "rag-chat-selected-collection",
   collections: [],
+  lastRagPayload: null,
+  lastRagResult: null,
   get collectionName() {
     return sessionStorage.getItem(this.collectionStorageKey) || this.collections[0]?.name || "rag_chunks";
   },
@@ -82,6 +85,14 @@ const api = {
       body: JSON.stringify(payload),
     });
   },
+  ragas(payload) {
+    return this.request("/api/rag/ragas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      timeoutMs: RAGAS_TIMEOUT_MS,
+      body: JSON.stringify(payload),
+    });
+  },
 };
 
 const escapeHtml = (value = "") => String(value)
@@ -92,6 +103,32 @@ const escapeHtml = (value = "") => String(value)
   .replaceAll("'", "&#039;");
 
 const shortId = (id) => id.length > 13 ? `${id.slice(0, 8)}...${id.slice(-4)}` : id;
+const fileTimestamp = () => new Date().toISOString().replaceAll(":", "-").replace(/\..+/, "");
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+  if (value === null || value === undefined) return "";
+  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function toCsv(rows, columns) {
+  return [
+    columns.join(","),
+    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
+  ].join("\n");
+}
 
 function setNotice(id, message = "", isError = false) {
   const element = byId(id);
@@ -159,9 +196,97 @@ function renderRagas(report) {
     : report.message || "Metricas nao calculadas.";
 }
 
+function updateRagasAction() {
+  const button = byId("calculate-ragas");
+  button.disabled = !state.lastRagResult?.answer;
+  const canExport = Boolean(state.lastRagPayload && state.lastRagResult);
+  byId("export-rag-json").disabled = !canExport;
+  byId("export-rag-csv").disabled = !canExport;
+}
+
 function methodLabel(method, usedReranker) {
   const base = method === "dense" ? "EMBEDDING" : method === "bm25" ? "BM25" : "HIBRIDO";
   return `${base}${usedReranker ? " · RERANK" : ""}`;
+}
+
+function metricKey(name = "") {
+  return String(name)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function ragasMetricValues(report = {}) {
+  const values = {};
+  (report.metrics || []).forEach((metric) => {
+    values[`ragas_${metricKey(metric.name)}`] = metric.value;
+  });
+  return values;
+}
+
+function buildRagExport() {
+  if (!state.lastRagPayload || !state.lastRagResult) return null;
+  return {
+    schema_version: "1.0",
+    exported_at: new Date().toISOString(),
+    app: "chat",
+    export_type: "rag_answer",
+    question: state.lastRagPayload.query,
+    answer: state.lastRagResult.answer,
+    answer_available: true,
+    query: state.lastRagPayload.query,
+    reference_answer: byId("reference-answer").value.trim(),
+    request: state.lastRagPayload,
+    response: state.lastRagResult,
+  };
+}
+
+function ragExportRows(exportData) {
+  const response = exportData.response;
+  const metricValues = ragasMetricValues(response.ragas);
+  const base = {
+    app: exportData.app,
+    export_type: exportData.export_type,
+    schema_version: exportData.schema_version,
+    exported_at: exportData.exported_at,
+    collection_name: response.collection_name,
+    question: exportData.question,
+    answer_available: exportData.answer_available,
+    query: exportData.query,
+    reference_answer: exportData.reference_answer,
+    answer: response.answer,
+    method: response.method,
+    top_k: response.top_k,
+    candidate_k: response.candidate_k,
+    used_reranker: response.used_reranker,
+    latency_ms: response.latency_ms,
+    source_count: response.sources.length,
+    ragas_evaluated: response.ragas?.evaluated,
+    ragas_message: response.ragas?.message,
+    request_json: exportData.request,
+    ragas_json: response.ragas,
+    response_json: response,
+    ...metricValues,
+  };
+  const sources = response.sources.length ? response.sources : [{}];
+  return sources.map((source) => ({
+    ...base,
+    rank: source.rank,
+    retrieval_rank: source.retrieval_rank,
+    chunk_id: source.chunk_id,
+    document_id: source.document_id,
+    document_name: source.document_name,
+    page_number: source.page_number,
+    ordinal: source.ordinal,
+    score: source.score,
+    dense_score: source.dense_score,
+    bm25_score: source.bm25_score,
+    rerank_score: source.rerank_score,
+    content: source.content,
+    source_json: source.chunk_id ? source : "",
+  }));
 }
 
 function renderSources(sources) {
@@ -203,6 +328,8 @@ function renderResult(data) {
   byId("answer").textContent = data.answer;
   renderSources(data.sources);
   renderRagas(data.ragas);
+  state.lastRagResult = data;
+  updateRagasAction();
 }
 
 function bindCollections() {
@@ -219,19 +346,25 @@ function bindRag() {
     const submit = byId("rag-submit");
     submit.disabled = true;
     submit.textContent = "Consultando...";
+    state.lastRagPayload = null;
+    state.lastRagResult = null;
+    updateRagasAction();
     setNotice("rag-message");
     byId("run-summary").textContent = "Recuperando chunks e gerando resposta...";
+    renderRagas({ evaluated: false, message: "RAGAS sera calculado depois, se solicitado." });
     try {
-      const data = await api.rag({
+      const payload = {
         query: byId("query").value.trim(),
         collection_name: state.collectionName,
         method: byId("method").value,
         top_k: Number(byId("top-k").value),
         candidate_k: Number(byId("candidate-k").value),
         use_reranker: byId("use-reranker").checked,
-        evaluate_ragas: byId("evaluate-ragas").checked,
+        evaluate_ragas: false,
         reference_answer: byId("reference-answer").value.trim(),
-      });
+      };
+      state.lastRagPayload = payload;
+      const data = await api.rag(payload);
       renderResult(data);
     } catch (error) {
       setNotice("rag-message", error.message, true);
@@ -240,6 +373,98 @@ function bindRag() {
       submit.disabled = false;
       submit.textContent = "Perguntar";
     }
+  });
+}
+
+function bindRagas() {
+  byId("calculate-ragas").addEventListener("click", async () => {
+    if (!state.lastRagPayload || !state.lastRagResult) return;
+    const button = byId("calculate-ragas");
+    button.disabled = true;
+    button.textContent = "Calculando...";
+    setNotice("rag-message");
+    renderRagas({ evaluated: false, message: "Calculando metricas RAGAS..." });
+    try {
+      const report = await api.ragas({
+        query: state.lastRagPayload.query,
+        answer: state.lastRagResult.answer,
+        sources: state.lastRagResult.sources,
+        reference_answer: byId("reference-answer").value.trim(),
+      });
+      state.lastRagResult.ragas = report;
+      renderRagas(report);
+    } catch (error) {
+      setNotice("rag-message", error.message, true);
+      renderRagas({ evaluated: false, message: "Nao foi possivel calcular RAGAS." });
+    } finally {
+      button.disabled = false;
+      button.textContent = "Calcular";
+      updateRagasAction();
+    }
+  });
+}
+
+function bindExport() {
+  byId("export-rag-json").addEventListener("click", () => {
+    const exportData = buildRagExport();
+    if (!exportData) return;
+    downloadFile(
+      `chat-rag-${fileTimestamp()}.json`,
+      JSON.stringify(exportData, null, 2),
+      "application/json;charset=utf-8",
+    );
+  });
+
+  byId("export-rag-csv").addEventListener("click", () => {
+    const exportData = buildRagExport();
+    if (!exportData) return;
+    const columns = [
+      "app",
+      "export_type",
+      "schema_version",
+      "exported_at",
+      "collection_name",
+      "question",
+      "query",
+      "reference_answer",
+      "answer",
+      "answer_available",
+      "method",
+      "top_k",
+      "candidate_k",
+      "used_reranker",
+      "latency_ms",
+      "source_count",
+      "rank",
+      "retrieval_rank",
+      "chunk_id",
+      "document_id",
+      "document_name",
+      "page_number",
+      "ordinal",
+      "score",
+      "dense_score",
+      "bm25_score",
+      "rerank_score",
+      "ragas_evaluated",
+      "ragas_faithfulness",
+      "ragas_answer_relevancy",
+      "ragas_context_precision",
+      "ragas_context_recall",
+      "ragas_factual_correctness",
+      "ragas_context_utilization",
+      "ragas_message",
+      "content",
+      "request_json",
+      "ragas_json",
+      "response_json",
+      "source_json",
+    ];
+    downloadFile(
+      `chat-rag-${fileTimestamp()}.csv`,
+      `${toCsv(ragExportRows(exportData), columns)}\n`,
+      "text/csv;charset=utf-8",
+    );
   });
 }
 
@@ -284,5 +509,7 @@ async function restoreSession() {
 
 bindCollections();
 bindRag();
+bindRagas();
+bindExport();
 bindAuthentication();
 restoreSession();

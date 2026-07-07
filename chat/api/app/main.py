@@ -3,9 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.auth import create_access_token, password_is_valid, require_authenticated
 from app.core.config import get_settings
-from app.schemas import CollectionOut, LoginRequest, LoginResponse, RagRequest, RagResponse
+from app.schemas import (
+    CollectionOut,
+    LoginRequest,
+    LoginResponse,
+    RagRequest,
+    RagResponse,
+    RagasEvaluationRequest,
+    RagasReport,
+)
 from app.services.ingest_client import get_ingest_client
-from app.services.rag_graph import run_rag_graph
+from app.services.rag_graph import run_rag_graph, run_ragas_evaluation
 
 settings = get_settings()
 
@@ -49,6 +57,11 @@ def list_collections() -> list[CollectionOut]:
 @api_router.post("/rag", response_model=RagResponse)
 def rag(payload: RagRequest) -> RagResponse:
     return run_rag_graph(payload)
+
+
+@api_router.post("/rag/ragas", response_model=RagasReport)
+def ragas(payload: RagasEvaluationRequest) -> RagasReport:
+    return run_ragas_evaluation(payload)
 
 
 app.include_router(api_router)

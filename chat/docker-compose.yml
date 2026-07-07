@@ -15,6 +15,9 @@ services:
       RAGAS_MODEL: ${RAGAS_MODEL:-}
       RAGAS_EMBEDDING_MODEL: ${RAGAS_EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
       RAGAS_EMBEDDING_DEVICE: ${RAGAS_EMBEDDING_DEVICE:-}
+      RAGAS_MAX_CONTEXT_CHARACTERS: ${RAGAS_MAX_CONTEXT_CHARACTERS:-3000}
+      RAGAS_MAX_SOURCES: ${RAGAS_MAX_SOURCES:-3}
+      RAGAS_PARALLEL_WORKERS: ${RAGAS_PARALLEL_WORKERS:-4}
       HF_HOME: /models/huggingface
     volumes:
       - chat-model-cache:/models

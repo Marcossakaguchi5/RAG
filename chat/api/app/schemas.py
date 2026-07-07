@@ -46,7 +46,7 @@ class RagRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     candidate_k: int = Field(default=20, ge=1, le=50)
     use_reranker: bool = True
-    evaluate_ragas: bool = True
+    evaluate_ragas: bool = False
     reference_answer: str = Field(default="", max_length=12000)
 
 
@@ -72,3 +72,10 @@ class RagResponse(BaseModel):
     latency_ms: int
     sources: list[RagSource]
     ragas: RagasReport
+
+
+class RagasEvaluationRequest(BaseModel):
+    query: str = Field(min_length=1, max_length=4000)
+    answer: str = Field(min_length=1, max_length=12000)
+    sources: list[RagSource] = Field(default_factory=list)
+    reference_answer: str = Field(default="", max_length=12000)

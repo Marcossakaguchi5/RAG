@@ -97,11 +97,6 @@
               <span></span>
               <strong>Reranker</strong>
             </label>
-            <label class="switch">
-              <input id="evaluate-ragas" type="checkbox" checked />
-              <span></span>
-              <strong>RAGAS</strong>
-            </label>
           </div>
 
           <label class="reference-field">
@@ -116,9 +111,16 @@
         </form>
 
         <aside class="metrics-card">
-          <div>
-            <p class="section-label">Avaliacao</p>
-            <h3>RAGAS</h3>
+          <div class="metrics-heading">
+            <div>
+              <p class="section-label">Avaliacao</p>
+              <h3>RAGAS</h3>
+            </div>
+            <div class="metrics-actions">
+              <button id="calculate-ragas" class="button ghost" type="button" disabled>Calcular</button>
+              <button id="export-rag-json" class="button ghost" type="button" disabled>JSON</button>
+              <button id="export-rag-csv" class="button ghost" type="button" disabled>CSV</button>
+            </div>
           </div>
           <div id="ragas-metrics" class="metrics-grid"></div>
           <p id="ragas-note" class="metrics-note">Execute uma pergunta para calcular as metricas.</p>

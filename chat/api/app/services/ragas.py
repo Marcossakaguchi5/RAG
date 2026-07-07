@@ -1,5 +1,7 @@
 import math
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 from typing import Any, Callable
 
@@ -7,8 +9,12 @@ from app.core.config import get_settings
 from app.schemas import RagasMetric, RagasReport, RagSource
 
 
-def _contexts(sources: list[RagSource], max_chars: int) -> list[str]:
-    return [source.content.strip()[:max_chars] for source in sources if source.content.strip()]
+def _contexts(sources: list[RagSource], max_chars: int, max_sources: int) -> list[str]:
+    return [
+        source.content.strip()[:max_chars]
+        for source in sources[:max_sources]
+        if source.content.strip()
+    ]
 
 
 def _score_value(result: Any) -> tuple[float | None, str | None]:
@@ -57,6 +63,8 @@ class OfficialRagasEvaluator:
 
         os.environ.setdefault("RAGAS_DO_NOT_TRACK", "true")
         self.max_context_chars = settings.ragas_max_context_characters
+        self.max_sources = settings.ragas_max_sources
+        self.parallel_workers = settings.ragas_parallel_workers
         client = AsyncOpenAI(
             api_key=settings.llm_api_key,
             base_url=settings.llm_base_url,
@@ -88,12 +96,13 @@ class OfficialRagasEvaluator:
         sources: list[RagSource],
         reference_answer: str = "",
     ) -> RagasReport:
-        contexts = _contexts(sources, self.max_context_chars)
+        started_at = time.perf_counter()
+        contexts = _contexts(sources, self.max_context_chars, self.max_sources)
         if not contexts:
             return RagasReport(evaluated=False, message="Sem contextos recuperados para avaliar com RAGAS oficial.")
 
         reference = reference_answer.strip()
-        calls: list[tuple[str, Callable[[], Any], str | None]] = [
+        calls: list[tuple[str, Callable[[], Any] | None, str | None]] = [
             (
                 "Faithfulness",
                 lambda: self.faithfulness.score(
@@ -171,14 +180,40 @@ class OfficialRagasEvaluator:
                 ]
             )
 
-        metrics = []
+        metrics_by_name: dict[str, RagasMetric] = {}
+        executable_calls: list[tuple[str, Callable[[], Any], str | None]] = []
         for name, scorer, reason in calls:
             if scorer is None:
-                metrics.append(RagasMetric(name=name, value=None, reason=reason))
-                continue
-            metrics.append(_metric(name, scorer(), reason))
+                metrics_by_name[name] = RagasMetric(name=name, value=None, reason=reason)
+            else:
+                executable_calls.append((name, scorer, reason))
 
-        return RagasReport(evaluated=True, message="Metricas calculadas com a biblioteca oficial ragas.", metrics=metrics)
+        with ThreadPoolExecutor(max_workers=min(self.parallel_workers, len(executable_calls) or 1)) as executor:
+            futures = {
+                executor.submit(scorer): (name, reason)
+                for name, scorer, reason in executable_calls
+            }
+            for future in as_completed(futures):
+                name, reason = futures[future]
+                try:
+                    metrics_by_name[name] = _metric(name, future.result(), reason)
+                except Exception as error:
+                    metrics_by_name[name] = RagasMetric(
+                        name=name,
+                        value=None,
+                        reason=f"Falha ao calcular esta metrica: {error}",
+                    )
+
+        metrics = [metrics_by_name[name] for name, _, _ in calls]
+        elapsed_ms = round((time.perf_counter() - started_at) * 1000)
+        return RagasReport(
+            evaluated=True,
+            message=(
+                "Metricas calculadas com a biblioteca oficial ragas "
+                f"em {elapsed_ms} ms usando {len(contexts)} contexto(s)."
+            ),
+            metrics=metrics,
+        )
 
 
 @lru_cache
