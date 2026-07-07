@@ -42,6 +42,17 @@ Por padrão, a extração usa Docling para converter PDFs em uma representação
 
 Não defina `DOCLING_ARTIFACTS_PATH` a menos que ele aponte para uma pasta completa de artefatos/modelos do Docling. Para cache comum, basta manter `HF_HOME=/models`; apontar `DOCLING_ARTIFACTS_PATH` para uma pasta vazia faz o Docling falhar antes da extração.
 
+Antes do upload, a interface permite escolher a estratégia de chunking:
+
+- `fixed_token`: baseline por janela fixa de tokens, usando o tokenizer do modelo de embeddings quando disponível.
+- `recursive_text`: baseline textual recursivo por parágrafos, frases e palavras, com overlap.
+- `docling_hierarchical`: chunker hierárquico nativo do Docling, baseado na estrutura detectada do documento.
+- `docling_hybrid`: chunker híbrido nativo do Docling, com refinamento orientado a tokens sobre o hierárquico.
+- `docling_hybrid_parent_child`: usa chunks híbridos como pais e indexa janelas menores como filhos com contexto do pai.
+- `docling_hybrid_contextual`: usa o `contextualize()` do HybridChunker para enriquecer o texto com metadados estruturais antes do embedding.
+
+O valor padrão pode ser sobrescrito por `CHUNKING_STRATEGY`. Os limites `CHUNK_SIZE_WORDS`, `CHUNK_OVERLAP_WORDS`, `CHUNK_SIZE_TOKENS`, `CHUNK_OVERLAP_TOKENS`, `PARENT_CHILD_SIZE_WORDS` e `PARENT_CHILD_OVERLAP_WORDS` controlam os tamanhos usados pelos baselines e pelas estratégias avançadas.
+
 O campo `page_number` continua existindo para compatibilidade com a interface e as citações, mas em chunks que atravessam páginas ele deve ser interpretado como referência aproximada.
 
 O PDF original é salvo no MinIO apenas depois que a extração e a criação dos chunks passam. Se o upload retorna erro 400 durante extração/OCR, o arquivo não fica persistido no MinIO.

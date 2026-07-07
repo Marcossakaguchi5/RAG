@@ -9,7 +9,7 @@ from app.models import Chunk, Document
 from app.schemas import DocumentOut
 from app.services.collections import normalize_collection_name
 from app.services.indexer import index_document_chunks
-from app.services.pdf_processor import extract_pdf_chunks
+from app.services.pdf_processor import extract_pdf_chunks, normalize_chunking_strategy
 from app.services.storage import delete_object, put_pdf
 from app.services.vector_store import delete_chunks
 
@@ -19,6 +19,7 @@ def document_to_schema(document: Document) -> DocumentOut:
         id=document.id,
         original_name=document.original_name,
         collection_name=document.collection_name,
+        chunking_strategy=document.chunking_strategy,
         size_bytes=document.size_bytes,
         page_count=document.page_count,
         chunks_count=len(document.chunks),
@@ -26,8 +27,14 @@ def document_to_schema(document: Document) -> DocumentOut:
     )
 
 
-def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> DocumentOut:
+def ingest_pdf(
+    upload: UploadFile,
+    session: Session,
+    collection_name: str,
+    chunking_strategy: str | None = None,
+) -> DocumentOut:
     collection_name = normalize_collection_name(collection_name)
+    chunking_strategy = normalize_chunking_strategy(chunking_strategy)
     filename = Path(upload.filename or "documento.pdf").name
     if not filename.lower().endswith(".pdf"):
         raise ValueError("Apenas arquivos PDF são aceitos nesta etapa.")
@@ -38,7 +45,7 @@ def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> Do
     if not data.startswith(b"%PDF"):
         raise ValueError("O arquivo enviado não parece ser um PDF válido.")
 
-    page_count, drafts = extract_pdf_chunks(data)
+    page_count, drafts = extract_pdf_chunks(data, chunking_strategy=chunking_strategy)
     document_id = str(uuid4())
     object_name = f"documents/{collection_name}/{document_id}/{filename}"
     document = Document(
@@ -49,6 +56,7 @@ def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> Do
         content_type="application/pdf",
         size_bytes=len(data),
         page_count=page_count,
+        chunking_strategy=chunking_strategy,
     )
     chunks = [
         Chunk(
@@ -58,6 +66,7 @@ def ingest_pdf(upload: UploadFile, session: Session, collection_name: str) -> Do
             page_number=draft.page_number,
             content=draft.content,
             word_count=draft.word_count,
+            chunking_strategy=draft.chunking_strategy,
         )
         for draft in drafts
     ]

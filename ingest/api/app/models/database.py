@@ -28,6 +28,7 @@ class Document(Base):
     content_type: Mapped[str] = mapped_column(String(128), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     page_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    chunking_strategy: Mapped[str] = mapped_column(String(64), nullable=False, default="recursive_text")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     chunks: Mapped[list["Chunk"]] = relationship(
@@ -44,6 +45,7 @@ class Chunk(Base):
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     word_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunking_strategy: Mapped[str] = mapped_column(String(64), nullable=False, default="recursive_text")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     document: Mapped[Document] = relationship(back_populates="chunks")

@@ -21,6 +21,7 @@ class DocumentOut(BaseModel):
     id: str
     original_name: str
     collection_name: str
+    chunking_strategy: str = "recursive_text"
     size_bytes: int
     page_count: int
     chunks_count: int
@@ -57,6 +58,7 @@ class PointPreview(BaseModel):
     chunk_total: int = 0
     word_count: int = 0
     char_count: int = 0
+    chunking_strategy: str = "recursive_text"
     content: str
 
 

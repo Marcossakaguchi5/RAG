@@ -64,7 +64,7 @@ def _chunk_payload(
         "chunk_word_count": chunk.word_count,
         "char_count": char_count,
         "chunk_char_count": char_count,
-        "chunking_strategy": "dynamic_blocks",
+        "chunking_strategy": chunk.chunking_strategy or document.chunking_strategy,
         "embedding_model": settings.embedding_model,
         "sparse_model": settings.sparse_model,
         "dense_vector_name": DENSE_VECTOR_NAME,

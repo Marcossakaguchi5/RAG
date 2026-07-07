@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260707-dots" />
   </head>
   <body>
     <section id="auth-gate" class="auth-gate" aria-labelledby="auth-title">
@@ -64,16 +64,30 @@
             <p class="section-label">Ingestão</p>
             <h2>Adicionar documentos</h2>
           </div>
-          <p>PDFs são extraídos com Docling, divididos em chunks dinâmicos e enviados ao Qdrant com vetores dense e sparse.</p>
+          <p>PDFs são extraídos com Docling, divididos pela estratégia selecionada e enviados ao Qdrant com vetores dense e sparse.</p>
         </div>
 
         <form id="upload-form" class="upload-form">
+          <div class="chunking-controls">
+            <label>
+              <span>Estratégia de chunking</span>
+              <select id="chunking-strategy" name="chunking-strategy">
+                <option value="recursive_text">Baseline 2: recursive_text</option>
+              </select>
+            </label>
+          </div>
           <label class="dropzone" for="pdf-files">
             <input id="pdf-files" name="files" type="file" accept="application/pdf,.pdf" multiple />
             <span class="upload-icon">↑</span>
             <strong>Solte PDFs aqui ou escolha arquivos</strong>
             <small>Apenas PDF nesta primeira versão · múltiplos arquivos permitidos</small>
           </label>
+          <div id="upload-progress" class="upload-progress" role="status" aria-live="polite" hidden>
+            <div>
+              <strong>Indexando documentos<span class="progress-dots" aria-hidden="true"></span></strong>
+              <span>Extraindo, criando chunks e atualizando os índices.</span>
+            </div>
+          </div>
           <div class="upload-footer">
             <span id="file-summary" class="muted">Nenhum arquivo selecionado</span>
             <button id="upload-button" class="button primary" type="submit" disabled>Ingerir arquivos</button>
@@ -173,6 +187,10 @@
             </div>
             <div id="metrics" class="metrics-grid"></div>
             <p id="metrics-note" class="metrics-note">Informe chunks relevantes para habilitar a avaliação supervisionada.</p>
+            <div class="export-actions" aria-label="Exportar resultados da busca">
+              <button id="export-search-json" class="button ghost" type="button" disabled>Exportar JSON</button>
+              <button id="export-search-csv" class="button ghost" type="button" disabled>Exportar CSV</button>
+            </div>
           </aside>
         </div>
       </section>
@@ -180,6 +198,6 @@
     <template id="metric-template">
       <div class="metric"><span></span><strong>—</strong></div>
     </template>
-    <script src="/app.js" defer></script>
+    <script src="/app.js?v=20260707-dots" defer></script>
   </body>
 </html>

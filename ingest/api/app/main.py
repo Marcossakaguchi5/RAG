@@ -28,6 +28,7 @@ from app.schemas import (
 from app.services.collections import normalize_collection_name
 from app.services.ingestion import document_to_schema, ingest_pdf
 from app.services.indexer import rebuild_index_from_mysql
+from app.services.pdf_processor import CHUNKING_STRATEGIES, normalize_chunking_strategy
 from app.services.retrieval import retrieve
 from app.services.sparse_embeddings import get_sparse_embedding_service
 from app.services.storage import ensure_bucket
@@ -143,6 +144,7 @@ def create_collection(payload: CollectionIn, session: Session = Depends(get_sess
 def upload_documents(
     files: list[UploadFile] = File(...),
     collection_name: str = Form(default=settings.qdrant_collection),
+    chunking_strategy: str = Form(default=settings.chunking_strategy),
     session: Session = Depends(get_session),
 ) -> UploadResponse:
     if not ingestion_lock.acquire(blocking=False):
@@ -154,6 +156,7 @@ def upload_documents(
     try:
         try:
             collection_name = ensure_collection_ready(collection_name, session)
+            chunking_strategy = normalize_chunking_strategy(chunking_strategy)
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
         ensure_collection_record(session, collection_name)
@@ -162,7 +165,7 @@ def upload_documents(
         errors: list[UploadError] = []
         for file in files:
             try:
-                documents.append(ingest_pdf(file, session, collection_name))
+                documents.append(ingest_pdf(file, session, collection_name, chunking_strategy))
             except ValueError as error:
                 errors.append(UploadError(filename=file.filename or "arquivo", detail=str(error)))
             except Exception:
@@ -221,6 +224,7 @@ def list_points(
                 chunk_total=int((point.payload or {}).get("chunk_total", 0)),
                 word_count=int((point.payload or {}).get("word_count", 0)),
                 char_count=int((point.payload or {}).get("char_count", 0)),
+                chunking_strategy=str((point.payload or {}).get("chunking_strategy", settings.chunking_strategy)),
                 content=str((point.payload or {}).get("content", "")),
             )
             for point in points
@@ -247,6 +251,17 @@ def search(payload: SearchRequest, session: Session = Depends(get_session)) -> S
     relevant_ids = list({item.strip() for item in payload.relevant_chunk_ids if item.strip()})
     metrics = calculate_metrics([result.chunk_id for result in results], relevant_ids, payload.top_k)
     return SearchResponse(method=payload.method, top_k=payload.top_k, results=results, metrics=metrics)
+
+
+@api_router.get("/chunking-strategies")
+def list_chunking_strategies() -> dict[str, object]:
+    return {
+        "default": normalize_chunking_strategy(settings.chunking_strategy),
+        "strategies": [
+            {"value": value, "label": label}
+            for value, label in CHUNKING_STRATEGIES.items()
+        ],
+    }
 
 
 app.include_router(api_router)

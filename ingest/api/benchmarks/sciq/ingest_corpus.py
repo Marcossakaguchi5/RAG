@@ -69,7 +69,7 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
         for row in batch:
             doc_id = str(row["doc_id"])
             text = str(row["text"])
-            drafts = chunk_text(text, page_count=1)
+            drafts = chunk_text(text, page_count=1, chunking_strategy="recursive_text")
             for draft in drafts:
                 chunk_rows.append(
                     {
@@ -79,6 +79,7 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
                         "ordinal": draft.ordinal,
                         "word_count": draft.word_count,
                         "chunk_total": len(drafts),
+                        "chunking_strategy": draft.chunking_strategy,
                     }
                 )
 
@@ -119,7 +120,7 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
                         "chunk_word_count": int(row["word_count"]),
                         "char_count": len(text),
                         "chunk_char_count": len(text),
-                        "chunking_strategy": "dynamic_blocks",
+                        "chunking_strategy": str(row["chunking_strategy"]),
                         "dataset": "sciq",
                         "source_field": "support",
                     },

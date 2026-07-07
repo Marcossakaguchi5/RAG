@@ -5,6 +5,7 @@ const state = {
   collectionStorageKey: "rag-ingest-selected-collection",
   collections: [],
   lastSearchPayload: null,
+  lastSearchResult: null,
   relevantIds: new Set(),
   get collectionName() {
     return sessionStorage.getItem(this.collectionStorageKey) || this.collections[0]?.name || "rag_chunks";
@@ -78,6 +79,7 @@ const api = {
   },
   session() { return this.request("/api/auth/session"); },
   collections() { return this.request("/api/collections"); },
+  chunkingStrategies() { return this.request("/api/chunking-strategies"); },
   createCollection(name) {
     return this.request("/api/collections", {
       method: "POST",
@@ -115,6 +117,32 @@ const relevantIdsFromInput = () => byId("relevant-ids").value
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean);
+const fileTimestamp = () => new Date().toISOString().replaceAll(":", "-").replace(/\..+/, "");
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+  if (value === null || value === undefined) return "";
+  const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function toCsv(rows, columns) {
+  return [
+    columns.join(","),
+    ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(",")),
+  ].join("\n");
+}
 
 function setNotice(id, message = "", isError = false) {
   const element = byId(id);
@@ -136,6 +164,12 @@ function updateRelevanceControls({ writeInput = true } = {}) {
   });
 }
 
+function updateExportAction() {
+  const enabled = Boolean(state.lastSearchPayload && state.lastSearchResult);
+  byId("export-search-json").disabled = !enabled;
+  byId("export-search-csv").disabled = !enabled;
+}
+
 function syncRelevantIdsFromInput({ writeInput = false } = {}) {
   state.relevantIds = new Set(relevantIdsFromInput());
   updateRelevanceControls({ writeInput });
@@ -143,12 +177,14 @@ function syncRelevantIdsFromInput({ writeInput = false } = {}) {
 
 function resetSearchState() {
   state.lastSearchPayload = null;
+  state.lastSearchResult = null;
   state.relevantIds = new Set();
   byId("search-results").className = "search-results empty-state";
   byId("search-results").textContent = "Faça uma pergunta para ver os chunks recuperados.";
   byId("result-method").textContent = "Aguardando busca";
   renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
   updateRelevanceControls();
+  updateExportAction();
 }
 
 function renderCollections(collections, preferredName = state.collectionName) {
@@ -184,7 +220,7 @@ function renderDocuments(documents) {
     <article class="document-row">
       <div>
         <div class="document-name" title="${escapeHtml(document.original_name)}">${escapeHtml(document.original_name)}</div>
-        <span class="document-meta">${document.page_count} pág. · ${bytes(document.size_bytes)}</span>
+        <span class="document-meta">${document.page_count} pág. · ${bytes(document.size_bytes)} · ${escapeHtml(document.chunking_strategy || "recursive_text")}</span>
       </div>
       <span class="document-tag">${document.chunks_count} chunks</span>
     </article>`).join("");
@@ -205,7 +241,7 @@ function renderPoints(data) {
         <span>${escapeHtml(point.file_name || point.document_name)} · p. ${point.page_number} · chunk ${point.chunk_index || point.ordinal + 1}${point.chunk_total ? `/${point.chunk_total}` : ""}</span>
         <code title="${point.id}">${shortId(point.id)}</code>
       </div>
-      <div class="point-meta">${point.word_count || 0} palavras · ${point.char_count || point.content.length} caracteres · doc ${shortId(point.document_id)}</div>
+      <div class="point-meta">${point.word_count || 0} palavras · ${point.char_count || point.content.length} caracteres · ${escapeHtml(point.chunking_strategy || "recursive_text")} · doc ${shortId(point.document_id)}</div>
       <p>${escapeHtml(point.content)}</p>
     </article>`).join("");
 }
@@ -247,6 +283,19 @@ async function loadCollections(preferredName = state.collectionName) {
   }
 }
 
+async function loadChunkingStrategies() {
+  const select = byId("chunking-strategy");
+  try {
+    const data = await api.chunkingStrategies();
+    select.innerHTML = data.strategies.map((strategy) => `
+      <option value="${escapeHtml(strategy.value)}">${escapeHtml(strategy.label)}</option>
+    `).join("");
+    select.value = data.default;
+  } catch {
+    select.innerHTML = '<option value="recursive_text">Baseline 2: recursive_text</option>';
+  }
+}
+
 function renderMetrics(metrics, topK) {
   const values = [
     [`Precision@${topK}`, metrics.precision_at_k],
@@ -273,6 +322,73 @@ function buildSearchPayload() {
   };
 }
 
+function buildSearchExport() {
+  if (!state.lastSearchPayload || !state.lastSearchResult) return null;
+  return {
+    schema_version: "1.0",
+    exported_at: new Date().toISOString(),
+    app: "ingest",
+    export_type: "retrieval_search",
+    question: state.lastSearchPayload.query,
+    answer: "",
+    answer_available: false,
+    collection_name: state.lastSearchPayload.collection_name,
+    query: state.lastSearchPayload.query,
+    request: state.lastSearchPayload,
+    method: state.lastSearchResult.method,
+    top_k: state.lastSearchResult.top_k,
+    result_count: state.lastSearchResult.results.length,
+    relevant_count: state.lastSearchPayload.relevant_chunk_ids.length,
+    relevant_chunk_ids: state.lastSearchPayload.relevant_chunk_ids,
+    metrics: state.lastSearchResult.metrics,
+    results: state.lastSearchResult.results,
+  };
+}
+
+function searchExportRows(exportData) {
+  const base = {
+    app: exportData.app,
+    export_type: exportData.export_type,
+    schema_version: exportData.schema_version,
+    exported_at: exportData.exported_at,
+    collection_name: exportData.collection_name,
+    question: exportData.question,
+    answer: exportData.answer,
+    answer_available: exportData.answer_available,
+    query: exportData.query,
+    method: exportData.method,
+    top_k: exportData.top_k,
+    result_count: exportData.result_count,
+    relevant_count: exportData.relevant_count,
+    relevant_chunk_ids: exportData.relevant_chunk_ids,
+    evaluated: exportData.metrics?.evaluated,
+    metrics_message: exportData.metrics?.message,
+    precision_at_k: exportData.metrics?.precision_at_k,
+    recall_at_k: exportData.metrics?.recall_at_k,
+    map: exportData.metrics?.map,
+    ndcg_at_k: exportData.metrics?.ndcg_at_k,
+    mrr: exportData.metrics?.mrr,
+    request_json: exportData.request,
+    metrics_json: exportData.metrics,
+  };
+  const results = exportData.results.length ? exportData.results : [{}];
+  return results.map((result, index) => ({
+    ...base,
+    rank: result.chunk_id ? index + 1 : "",
+    chunk_id: result.chunk_id,
+    document_id: result.document_id,
+    document_name: result.document_name,
+    page_number: result.page_number,
+    ordinal: result.ordinal,
+    score: result.score,
+    dense_score: result.dense_score,
+    bm25_score: result.bm25_score,
+    is_relevant: result.chunk_id ? exportData.relevant_chunk_ids.includes(result.chunk_id) : "",
+    content: result.content,
+    result_json: result.chunk_id ? result : "",
+  }));
+}
+
 function renderResults(data) {
   const container = byId("search-results");
   byId("result-method").textContent = data.method === "dense"
@@ -282,6 +398,7 @@ function renderResults(data) {
   if (!data.results.length) {
     container.className = "search-results empty-state";
     container.textContent = "Nenhum chunk correspondeu à consulta.";
+    updateExportAction();
     return;
   }
   container.className = "search-results";
@@ -308,6 +425,7 @@ function renderResults(data) {
       </article>`;
   }).join("");
   updateRelevanceControls();
+  updateExportAction();
 }
 
 function bindTabs() {
@@ -328,19 +446,35 @@ function bindTabs() {
 }
 
 function bindUpload() {
+  const form = byId("upload-form");
   const input = byId("pdf-files");
   const button = byId("upload-button");
   const summary = byId("file-summary");
   const zone = document.querySelector(".dropzone");
+  const strategy = byId("chunking-strategy");
+  const progress = byId("upload-progress");
+  let isIndexing = false;
   const updateFiles = () => {
     const count = input.files.length;
-    summary.textContent = count ? `${count} arquivo${count > 1 ? "s" : ""} selecionado${count > 1 ? "s" : ""}` : "Nenhum arquivo selecionado";
-    button.disabled = !count;
+    summary.textContent = isIndexing
+      ? "Indexação em andamento"
+      : count ? `${count} arquivo${count > 1 ? "s" : ""} selecionado${count > 1 ? "s" : ""}` : "Nenhum arquivo selecionado";
+    button.disabled = isIndexing || !count;
+  };
+  const setIndexing = (value) => {
+    isIndexing = value;
+    form.classList.toggle("indexing", value);
+    input.disabled = value;
+    strategy.disabled = value;
+    progress.hidden = !value;
+    button.textContent = value ? "Indexando…" : "Ingerir arquivos";
+    updateFiles();
   };
   input.addEventListener("change", updateFiles);
   ["dragenter", "dragover"].forEach((event) => zone.addEventListener(event, (item) => { item.preventDefault(); zone.classList.add("dragging"); }));
   ["dragleave", "drop"].forEach((event) => zone.addEventListener(event, (item) => { item.preventDefault(); zone.classList.remove("dragging"); }));
   zone.addEventListener("drop", (event) => {
+    if (isIndexing) return;
     const files = [...event.dataTransfer.files].filter((file) => file.name.toLowerCase().endsWith(".pdf"));
     if (!files.length) return;
     const transfer = new DataTransfer();
@@ -348,13 +482,14 @@ function bindUpload() {
     input.files = transfer.files;
     updateFiles();
   });
-  byId("upload-form").addEventListener("submit", async (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isIndexing) return;
     const data = new FormData();
     data.append("collection_name", state.collectionName);
+    data.append("chunking_strategy", strategy.value);
     [...input.files].forEach((file) => data.append("files", file));
-    button.disabled = true;
-    button.textContent = "Indexando…";
+    setIndexing(true);
     setNotice("upload-message");
     try {
       const response = await api.upload(data);
@@ -367,8 +502,7 @@ function bindUpload() {
     } catch (error) {
       setNotice("upload-message", error.message, true);
     } finally {
-      button.textContent = "Ingerir arquivos";
-      updateFiles();
+      setIndexing(false);
     }
   });
 }
@@ -415,6 +549,7 @@ function bindSearch() {
       const payload = buildSearchPayload();
       const data = await api.search(payload);
       state.lastSearchPayload = payload;
+      state.lastSearchResult = data;
       renderResults(data);
     } catch (error) {
       setNotice("search-message", error.message, true);
@@ -455,9 +590,68 @@ function bindSearch() {
   });
 }
 
+function bindExport() {
+  byId("export-search-json").addEventListener("click", () => {
+    const exportData = buildSearchExport();
+    if (!exportData) return;
+    downloadFile(
+      `ingest-retrieval-${fileTimestamp()}.json`,
+      JSON.stringify(exportData, null, 2),
+      "application/json;charset=utf-8",
+    );
+  });
+
+  byId("export-search-csv").addEventListener("click", () => {
+    const exportData = buildSearchExport();
+    if (!exportData) return;
+    const columns = [
+      "app",
+      "export_type",
+      "schema_version",
+      "exported_at",
+      "collection_name",
+      "question",
+      "answer",
+      "answer_available",
+      "query",
+      "method",
+      "top_k",
+      "result_count",
+      "relevant_count",
+      "rank",
+      "chunk_id",
+      "is_relevant",
+      "document_id",
+      "document_name",
+      "page_number",
+      "ordinal",
+      "score",
+      "dense_score",
+      "bm25_score",
+      "evaluated",
+      "metrics_message",
+      "precision_at_k",
+      "recall_at_k",
+      "map",
+      "ndcg_at_k",
+      "mrr",
+      "relevant_chunk_ids",
+      "content",
+      "request_json",
+      "metrics_json",
+      "result_json",
+    ];
+    downloadFile(
+      `ingest-retrieval-${fileTimestamp()}.csv`,
+      `${toCsv(searchExportRows(exportData), columns)}\n`,
+      "text/csv;charset=utf-8",
+    );
+  });
+}
+
 async function loadDashboard() {
   renderMetrics({ evaluated: false, message: "Informe chunks relevantes para habilitar a avaliação supervisionada." }, 5);
-  await loadCollections();
+  await Promise.all([loadCollections(), loadChunkingStrategies()]);
   await Promise.all([loadDocuments(), loadPoints()]);
 }
 
@@ -503,6 +697,7 @@ bindTabs();
 bindCollections();
 bindUpload();
 bindSearch();
+bindExport();
 bindAuthentication();
 byId("refresh-documents").addEventListener("click", loadDocuments);
 byId("refresh-points").addEventListener("click", loadPoints);

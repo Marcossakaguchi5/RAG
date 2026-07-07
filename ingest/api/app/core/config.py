@@ -38,9 +38,14 @@ class Settings(BaseSettings):
     docling_ocr_force_full_page: bool = False
     docling_ocr_languages: str = "pt,en"
     docling_ocr_min_text_chars: int = Field(default=80, ge=0)
+    chunking_strategy: str = "recursive_text"
     chunk_min_words: int = Field(default=180, ge=1)
     chunk_size_words: int = 700
     chunk_overlap_words: int = 100
+    chunk_size_tokens: int = Field(default=512, ge=32)
+    chunk_overlap_tokens: int = Field(default=64, ge=0)
+    parent_child_size_words: int = Field(default=320, ge=32)
+    parent_child_overlap_words: int = Field(default=60, ge=0)
     max_upload_bytes: int = 50 * 1024 * 1024
     hybrid_dense_weight: float = 0.5
 
