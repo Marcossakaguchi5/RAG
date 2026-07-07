@@ -217,6 +217,31 @@ chat/api/benchmarks/ragas/data/runs/YYYYMMDD-HHMMSS/
     └── official_ragas_summary.json
 ```
 
+## 4. Exportacao pelo frontend
+
+As telas tambem permitem baixar a execucao atual em JSON ou CSV:
+
+- `ingest`: depois de rodar uma busca, use `Exportar JSON` ou `Exportar CSV` no card de metricas de ranking. Ele registra a pergunta, parametros, metricas e chunks recuperados; o campo `answer` fica vazio porque o ingest nao gera resposta.
+- `chat`: depois de rodar uma pergunta, use `JSON` ou `CSV` no card RAGAS. Ele registra pergunta, resposta gerada, resposta de referencia, parametros, fontes recuperadas e metricas. Se clicar em `Calcular` antes, as metricas RAGAS entram no arquivo exportado.
+
+Os CSVs sao propositalmente amplos: incluem colunas normalizadas e colunas `*_json` com os objetos brutos da execucao. Use esses arquivos para evidencia visual, inspecao rapida, prints da aplicacao e analises exploratorias. Para a tabela principal do artigo, prefira as rodadas dos scripts acima, porque elas fixam os casos, metodos, timestamps e saidas em pastas versionaveis.
+
+## Protocolo de replicabilidade
+
+1. Fixe o corpus/collection e registre estrategia de chunking, modelo dense, sparse, reranker, LLM e parametros (`top_k`, `candidate_k`).
+2. Monte ground truths versionados:
+   - `ingest`: `query` + `relevant_chunk_ids`.
+   - `chat`: `query` + `reference_answer`.
+3. Rode todos os metodos nos mesmos casos (`bm25`, `dense`, `hybrid`, com/sem reranker quando aplicavel).
+4. Preserve os artefatos brutos (`results.jsonl`), tabelas (`*.csv`) e sumarios (`*.json`) gerados em `benchmarks/**/data/runs/YYYYMMDD-HHMMSS/`.
+5. Faca as analises estatisticas sobre dados pareados por `case_id/query` e metodo:
+   - Friedman para comparar mais de dois metodos.
+   - Wilcoxon pareado para pos-teste entre pares.
+   - Holm-Bonferroni para corrigir multiplas comparacoes.
+   - Cliff's Delta para tamanho de efeito.
+   - Spearman/Kendall para correlacionar metricas de RI (`precision`, `recall`, `map`, `ndcg`, `mrr`) com metricas RAG/RAGAS.
+6. Gere os graficos a partir dos CSVs consolidados: tabela principal, heatmap de correlacao, boxplot por metodo, barras de medias/IC, scatter RI x RAG, pipeline visual e prints das telas.
+
 ## Qual usar?
 
 | Caso | Use |
