@@ -9,7 +9,11 @@ class EmbeddingService:
     def __init__(self) -> None:
         settings = get_settings()
         self.model_name = settings.embedding_model
-        self._model = SentenceTransformer(self.model_name)
+        self.model_revision = settings.embedding_model_revision.strip() or None
+        self._model = SentenceTransformer(
+            self.model_name,
+            revision=self.model_revision,
+        )
 
     @property
     def dimension(self) -> int:

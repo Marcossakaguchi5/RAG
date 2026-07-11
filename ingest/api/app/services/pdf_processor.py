@@ -190,11 +190,6 @@ def _extract_content(content: bytes) -> ExtractedContent:
     raise ValueError("O PDF não possui texto extraível. PDFs digitalizados exigem OCR.")
 
 
-def _extract_text(content: bytes) -> tuple[int, str]:
-    extracted = _extract_content(content)
-    return extracted.page_count, extracted.text
-
-
 def _paragraph_blocks(text: str) -> list[str]:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     blocks = [_normalize_text(block) for block in re.split(r"\n\s*\n+", normalized)]
@@ -338,7 +333,10 @@ def _load_transformers_tokenizer() -> Any | None:
     try:
         from transformers import AutoTokenizer
 
-        return AutoTokenizer.from_pretrained(settings.embedding_model)
+        return AutoTokenizer.from_pretrained(
+            settings.embedding_model,
+            revision=settings.embedding_model_revision.strip() or None,
+        )
     except Exception:
         logger.warning("Tokenizer HuggingFace indisponível; usando fallback por palavras.", exc_info=True)
         return None

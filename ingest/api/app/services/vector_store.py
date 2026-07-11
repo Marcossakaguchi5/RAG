@@ -27,7 +27,8 @@ _payload_indexes_checked: set[str] = set()
 
 @lru_cache
 def get_vector_client() -> QdrantClient:
-    return QdrantClient(url=get_settings().qdrant_url)
+    settings = get_settings()
+    return QdrantClient(url=settings.qdrant_url, timeout=settings.qdrant_timeout_seconds)
 
 
 def _create_collection(collection_name: str) -> None:
@@ -77,6 +78,15 @@ def _is_hybrid_collection(collection_name: str) -> bool:
     )
 
 
+def _dense_vector_size(collection_name: str) -> int | None:
+    collection = get_vector_client().get_collection(collection_name)
+    vectors = collection.config.params.vectors
+    if not isinstance(vectors, dict) or DENSE_VECTOR_NAME not in vectors:
+        return None
+    vector_config = vectors[DENSE_VECTOR_NAME]
+    return getattr(vector_config, "size", None)
+
+
 def ensure_collection(collection_name: str | None = None) -> bool:
     """Garante a coleção hybrid; retorna True quando ela foi criada/migrada."""
     settings = get_settings()
@@ -87,6 +97,21 @@ def ensure_collection(collection_name: str | None = None) -> bool:
         return True
 
     if _is_hybrid_collection(resolved_collection):
+        if _dense_vector_size(resolved_collection) != get_embedding_service().dimension:
+            client.recreate_collection(
+                collection_name=resolved_collection,
+                vectors_config={
+                    DENSE_VECTOR_NAME: models.VectorParams(
+                        size=get_embedding_service().dimension,
+                        distance=models.Distance.COSINE,
+                    )
+                },
+                sparse_vectors_config={
+                    SPARSE_VECTOR_NAME: models.SparseVectorParams(modifier=models.Modifier.IDF)
+                },
+            )
+            ensure_payload_indexes(resolved_collection, force=True)
+            return True
         ensure_payload_indexes(resolved_collection)
         return False
 

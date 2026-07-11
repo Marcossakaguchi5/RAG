@@ -13,7 +13,7 @@ Abra [http://localhost:8080](http://localhost:8080). A documentação interativa
 
 O painel e todas as rotas `/api/*` exigem a senha de `INGEST_APP_PASSWORD`. Para desenvolvimento, ela está definida no `.env.example`; troque-a no `.env` (ou nas variáveis do stack do Portainer) antes de expor o serviço. Apenas `/health` permanece público para monitoramento.
 
-Na primeira subida, o `sentence-transformers/all-MiniLM-L6-v2`, o modelo sparse e os modelos do Docling podem ser baixados para o volume persistente `model_cache` via `HF_HOME=/models`. Isso requer acesso à internet e pode levar alguns minutos; nas próximas inicializações eles são reutilizados.
+Na primeira subida, o `BAAI/bge-m3`, o modelo sparse e os modelos do Docling podem ser baixados para o volume persistente `model_cache` via `HF_HOME=/models`. Isso requer acesso à internet e pode levar alguns minutos; nas próximas inicializações eles são reutilizados.
 
 ## Estrutura
 
@@ -74,8 +74,10 @@ Campos como `collection_name`, `document_id`, `document_name`, `page_number`, `o
 Há três métodos disponíveis na segunda aba:
 
 - `bm25`: vetor sparse BM25 (`Qdrant/bm25`, com stemming em português) e índice invertido com IDF no Qdrant.
-- `dense`: similaridade de cosseno no Qdrant usando `sentence-transformers/all-MiniLM-L6-v2`.
+- `dense`: similaridade de cosseno no Qdrant usando `BAAI/bge-m3`.
 - `hybrid`: busca sparse+dense e Reciprocal Rank Fusion (RRF) nativa no Qdrant.
+
+Ao trocar o modelo de embedding, a API recria a coleção Qdrant derivada se a dimensão densa existente não bater com o modelo ativo, e reindexa os chunks canônicos a partir do MySQL na inicialização.
 
 Para o primeiro corte, os clientes diretos são mais adequados que LangChain: o pipeline fica simples de depurar, as fronteiras entre armazenamentos são explícitas e a avaliação não fica escondida atrás de abstrações. LangChain pode entrar depois no `chat/` (chains, tools, memória) ou como adaptador, sem acoplar essa ingestão a ele.
 

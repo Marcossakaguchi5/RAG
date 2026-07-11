@@ -27,7 +27,9 @@ class Settings(BaseSettings):
 
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = "rag_chunks"
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    qdrant_timeout_seconds: float = Field(default=120, gt=0)
+    embedding_model: str = "BAAI/bge-m3"
+    embedding_model_revision: str = ""
     sparse_model: str = "Qdrant/bm25"
     sparse_language: str = "portuguese"
     fastembed_cache_dir: str = "/models/fastembed"
@@ -47,7 +49,6 @@ class Settings(BaseSettings):
     parent_child_size_words: int = Field(default=320, ge=32)
     parent_child_overlap_words: int = Field(default=60, ge=0)
     max_upload_bytes: int = 50 * 1024 * 1024
-    hybrid_dense_weight: float = 0.5
 
     @property
     def database_url(self) -> str:

@@ -36,6 +36,10 @@ services:
     container_name: RI-ingest-dep-qdrant
     image: qdrant/qdrant:v1.13.3
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -60,6 +64,8 @@ services:
       MINIO_SECURE: "false"
 
       QDRANT_URL: http://qdrant:6333
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_MODEL_REVISION: ${EMBEDDING_MODEL_REVISION:-}
       HF_HOME: /models
       FASTEMBED_CACHE_PATH: /models/fastembed
 

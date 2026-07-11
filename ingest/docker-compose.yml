@@ -1,7 +1,7 @@
 services:
   mysql:
     container_name:  RI-ingest-dep-mysql
-    image: mysql:latest
+    image: mysql:8.4
     restart: unless-stopped
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
@@ -21,7 +21,7 @@ services:
 
   minio:
     container_name:  RI-ingest-dep-minio
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -35,8 +35,12 @@ services:
 
   qdrant:
     container_name:  RI-ingest-dep-qdrant
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.13.3
     restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     ports:
       - "${QDRANT_PORT:-6335}:6333"
       - "${QDRANT_GRPC_PORT:-6336}:6334"
@@ -60,6 +64,8 @@ services:
       MINIO_BUCKET: rag-documents
       MINIO_SECURE: "false"
       QDRANT_URL: http://qdrant:6333
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_MODEL_REVISION: ${EMBEDDING_MODEL_REVISION:-}
       HF_HOME: /models
       FASTEMBED_CACHE_PATH: /models/fastembed
       CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}

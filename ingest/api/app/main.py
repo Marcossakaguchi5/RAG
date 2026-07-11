@@ -264,4 +264,38 @@ def list_chunking_strategies() -> dict[str, object]:
     }
 
 
+@api_router.get("/experiment-config")
+def experiment_config() -> dict[str, object]:
+    """Expose only non-secret settings required to reproduce retrieval runs."""
+
+    return {
+        "app_version": app.version,
+        "embedding_model": settings.embedding_model,
+        "embedding_model_revision": settings.embedding_model_revision or None,
+        "sparse_model": settings.sparse_model,
+        "sparse_language": settings.sparse_language,
+        "chunking_default": normalize_chunking_strategy(settings.chunking_strategy),
+        "chunking_parameters": {
+            "chunk_min_words": settings.chunk_min_words,
+            "chunk_size_words": settings.chunk_size_words,
+            "chunk_overlap_words": settings.chunk_overlap_words,
+            "chunk_size_tokens": settings.chunk_size_tokens,
+            "chunk_overlap_tokens": settings.chunk_overlap_tokens,
+            "parent_child_size_words": settings.parent_child_size_words,
+            "parent_child_overlap_words": settings.parent_child_overlap_words,
+        },
+        "docling": {
+            "enabled": settings.docling_enabled,
+            "ocr_enabled": settings.docling_ocr_enabled,
+            "ocr_languages": settings.docling_ocr_languages,
+        },
+        "retrieval": {
+            "methods": ["bm25", "dense", "hybrid"],
+            "hybrid_fusion": "rrf",
+            "hybrid_candidate_multiplier": 4,
+            "hybrid_candidate_cap": 200,
+        },
+    }
+
+
 app.include_router(api_router)
