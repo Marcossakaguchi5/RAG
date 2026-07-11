@@ -1,11 +1,18 @@
 # Benchmark RAGAS oficial com ground truth
 
+No protocolo academico, este arquivo deve ser uma projecao do mesmo caso mestre usado
+na avaliacao de RI em PDFs. O materializador em `experiments/groundtruth/` gera o
+`ragas-groundtruth.jsonl`; nao mantenha uma segunda lista independente de perguntas e
+respostas.
+
 Este benchmark usa duas etapas:
 
 1. `run_groundtruth.py` chama a API do `chat`, deixa o LangGraph executar recuperação, reranking e geração, e salva pergunta, resposta e fontes em uma pasta com timestamp.
 2. `evaluate_official.py` lê o `results.jsonl` e calcula as métricas pela biblioteca oficial `ragas`.
 
 O painel RAGAS do site tambem usa a biblioteca oficial `ragas`; esta pipeline existe para rodar uma bateria inteira e salvar CSV/JSON reproduziveis para o artigo.
+
+O coletor registra `generation_source_ids` para distinguir os chunks recuperados dos chunks efetivamente enviados ao modelo. O avaliador usa os contextos de geração em `faithfulness` e todos os contextos recuperados em `context_precision` e `context_recall`. Rodadas antigas sem esse campo devem ser coletadas novamente.
 
 ## Formato do ground truth
 
@@ -71,10 +78,10 @@ Métricas oficiais padrão:
 - `factual_correctness`
 - `answer_relevancy`
 
-A métrica `answer_relevancy` usa embedding local `sentence-transformers/all-MiniLM-L6-v2` por padrão. Para trocar:
+A métrica `answer_relevancy` usa embedding local `BAAI/bge-m3` por padrão. Para trocar:
 
 ```bash
-RAGAS_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 \
+RAGAS_EMBEDDING_MODEL=BAAI/bge-m3 \
 RAGAS_LLM_API_KEY=sua-chave \
 python benchmarks/ragas/evaluate_official.py
 ```
@@ -97,4 +104,4 @@ benchmarks/ragas/data/runs/YYYYMMDD-HHMMSS/
 - `results.jsonl`: resposta completa da API por pergunta e fontes usadas.
 - `responses.csv`: uma linha por pergunta, sem métricas oficiais.
 - `official_ragas_metrics.csv`: métricas oficiais por pergunta.
-- `official_ragas_summary.json`: médias oficiais e contagem de erros.
+- `official_ragas_summary.json`: versão do RAGAS, modelos, política de contextos, médias, quantidades válidas por métrica e contagem de erros.

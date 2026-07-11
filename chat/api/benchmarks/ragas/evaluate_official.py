@@ -6,6 +6,7 @@ import json
 import math
 import os
 from datetime import datetime
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from statistics import mean
 from typing import Any, Callable
@@ -73,12 +74,19 @@ def require_env(name: str, value: str) -> str:
     return value
 
 
-def source_contexts(row: dict[str, Any], max_context_chars: int) -> list[str]:
+def ragas_version() -> str:
+    try:
+        return version("ragas")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+def source_contexts(row: dict[str, Any]) -> list[str]:
     contexts = []
     for source in row.get("sources", []) or []:
         content = str(source.get("content") or "").strip()
         if content:
-            contexts.append(content[:max_context_chars])
+            contexts.append(content)
     return contexts
 
 
@@ -91,24 +99,48 @@ def source_ids(row: dict[str, Any]) -> list[str]:
     return ids
 
 
-def prepare_sample(row: dict[str, Any], max_context_chars: int) -> dict[str, Any]:
+def generation_contexts(row: dict[str, Any]) -> list[str]:
+    generation_ids = row.get("generation_source_ids")
+    if not isinstance(generation_ids, list):
+        raise ValueError(
+            "Caso sem generation_source_ids. Gere uma nova rodada com run_groundtruth.py atualizado."
+        )
+
+    sources_by_id = {
+        str(source.get("chunk_id") or "").strip(): str(source.get("content") or "").strip()
+        for source in row.get("sources", []) or []
+    }
+    missing_ids = [str(chunk_id) for chunk_id in generation_ids if str(chunk_id) not in sources_by_id]
+    if missing_ids:
+        raise ValueError(
+            "generation_source_ids contem chunks ausentes em sources: "
+            + ", ".join(missing_ids)
+        )
+    return [sources_by_id[str(chunk_id)] for chunk_id in generation_ids if sources_by_id[str(chunk_id)]]
+
+
+def prepare_sample(row: dict[str, Any]) -> dict[str, Any]:
     query = str(row.get("query") or "").strip()
     answer = str(row.get("answer") or "").strip()
     reference = str(row.get("reference_answer") or "").strip()
-    contexts = source_contexts(row, max_context_chars)
+    retrieved_contexts = source_contexts(row)
+    used_contexts = generation_contexts(row)
     if not query:
         raise ValueError("Caso sem query.")
     if not answer:
         raise ValueError("Caso sem answer.")
     if not reference:
         raise ValueError("Caso sem reference_answer.")
-    if not contexts:
+    if not retrieved_contexts:
         raise ValueError("Caso sem contexts recuperados.")
+    if not used_contexts:
+        raise ValueError("Caso sem contextos enviados ao gerador.")
     return {
         "user_input": query,
         "response": answer,
         "reference": reference,
-        "retrieved_contexts": contexts,
+        "retrieved_contexts": retrieved_contexts,
+        "generation_contexts": used_contexts,
     }
 
 
@@ -119,7 +151,7 @@ def score_value(result: Any) -> tuple[float | None, str | None]:
         numeric = float(value)
     except (TypeError, ValueError):
         numeric = None
-    if numeric is not None and math.isnan(numeric):
+    if numeric is not None and not math.isfinite(numeric):
         numeric = None
     return numeric, str(reason) if reason else None
 
@@ -167,7 +199,7 @@ def build_scorers(args: argparse.Namespace) -> dict[str, Callable[[dict[str, Any
         scorers["faithfulness"] = lambda sample, scorer=metric: scorer.score(
             user_input=sample["user_input"],
             response=sample["response"],
-            retrieved_contexts=sample["retrieved_contexts"],
+            retrieved_contexts=sample["generation_contexts"],
         )
     if "context_precision" in args.metrics:
         metric = ContextPrecision(llm=llm)
@@ -210,6 +242,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]], metric_names: list
         "used_reranker",
         "latency_ms",
         "sources_count",
+        "generation_sources_count",
         *metric_names,
         "query",
         "answer",
@@ -231,6 +264,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]], metric_names: list
                     "used_reranker": row.get("used_reranker"),
                     "latency_ms": row.get("latency_ms"),
                     "sources_count": row.get("sources_count"),
+                    "generation_sources_count": row.get("generation_sources_count"),
                     **row.get("metrics", {}),
                     "query": row.get("query"),
                     "answer": row.get("answer"),
@@ -242,20 +276,28 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]], metric_names: list
 
 def summarize(rows: list[dict[str, Any]], args: argparse.Namespace, results_path: Path, output_dir: Path) -> dict[str, Any]:
     averages = {}
+    valid_counts = {}
     for name in args.metrics:
         values = [row["metrics"][name] for row in rows if row.get("status") == "ok" and row["metrics"].get(name) is not None]
         averages[name] = round(mean(values), 4) if values else None
+        valid_counts[name] = len(values)
     return {
         "results_path": str(results_path),
         "output_dir": str(output_dir),
         "llm_base_url": args.llm_base_url,
         "llm_model": args.llm_model,
         "embedding_model": args.embedding_model if "answer_relevancy" in args.metrics else None,
+        "ragas_version": ragas_version(),
+        "context_policy": {
+            "faithfulness": "contextos exatos enviados ao gerador",
+            "retrieval_metrics": "todos os contextos recuperados, sem truncamento adicional",
+        },
         "metrics": args.metrics,
         "total_cases": len(rows),
         "ok_cases": sum(1 for row in rows if row.get("status") == "ok"),
         "error_cases": sum(1 for row in rows if row.get("status") == "error"),
         "metric_averages": averages,
+        "metric_valid_counts": valid_counts,
     }
 
 
@@ -272,11 +314,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         try:
             if row.get("status") != "ok":
                 raise ValueError(f"Caso nao esta ok no coletor: {row.get('error') or row.get('status')}")
-            sample = prepare_sample(row, args.max_context_chars)
+            sample = prepare_sample(row)
             metrics = {}
             reasons = {}
             for name, scorer in scorers.items():
                 value, reason = score_value(scorer(sample))
+                if value is None:
+                    raise ValueError(f"A metrica {name} retornou valor nao finito ou invalido.")
                 metrics[name] = value
                 if reason:
                     reasons[name] = reason
@@ -295,6 +339,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "latency_ms": row.get("latency_ms"),
                     "sources_count": row.get("sources_count"),
                     "source_ids": source_ids(row),
+                    "generation_source_ids": row.get("generation_source_ids"),
+                    "generation_sources_count": len(row.get("generation_source_ids") or []),
                     "metrics": metrics,
                     "reasons": reasons,
                 }
@@ -317,6 +363,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "used_reranker": row.get("used_reranker"),
                     "latency_ms": row.get("latency_ms"),
                     "sources_count": row.get("sources_count"),
+                    "generation_source_ids": row.get("generation_source_ids"),
+                    "generation_sources_count": len(row.get("generation_source_ids") or []),
                     "metrics": {},
                     "error": str(error),
                 }
@@ -347,9 +395,8 @@ def main() -> None:
     parser.add_argument("--llm-base-url", default=env_value("RAGAS_LLM_BASE_URL", env_value("LLM_BASE_URL", "https://openrouter.ai/api/v1")))
     parser.add_argument("--llm-api-key", default=env_value("RAGAS_LLM_API_KEY", env_value("LLM_API_KEY")))
     parser.add_argument("--llm-model", default=env_value("RAGAS_LLM_MODEL", env_value("RAGAS_MODEL", env_value("LLM_MODEL", "deepseek/deepseek-v4-flash"))))
-    parser.add_argument("--embedding-model", default=env_value("RAGAS_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"))
+    parser.add_argument("--embedding-model", default=env_value("RAGAS_EMBEDDING_MODEL", "BAAI/bge-m3"))
     parser.add_argument("--embedding-device", default=env_value("RAGAS_EMBEDDING_DEVICE"))
-    parser.add_argument("--max-context-chars", type=int, default=6000)
     parser.add_argument("--continue-on-error", action="store_true")
     summary = run(parser.parse_args())
     print(json.dumps(summary, ensure_ascii=False, indent=2))

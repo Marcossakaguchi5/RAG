@@ -120,6 +120,7 @@ def summarize(rows: list[dict[str, Any]], args: argparse.Namespace, run_dir: Pat
         "ok_cases": sum(1 for row in rows if row.get("status") == "ok"),
         "error_cases": sum(1 for row in rows if row.get("status") == "error"),
         "total_sources": sum(int(row.get("sources_count") or 0) for row in rows),
+        "total_generation_sources": sum(int(row.get("generation_sources_count") or 0) for row in rows),
     }
 
 
@@ -135,6 +136,8 @@ def write_responses_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "used_reranker",
         "latency_ms",
         "sources_count",
+        "generation_sources_count",
+        "generation_source_ids",
         "query",
         "reference_answer",
         "answer",
@@ -155,6 +158,8 @@ def write_responses_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                     "used_reranker": row.get("used_reranker"),
                     "latency_ms": row.get("latency_ms"),
                     "sources_count": row.get("sources_count"),
+                    "generation_sources_count": row.get("generation_sources_count"),
+                    "generation_source_ids": json.dumps(row.get("generation_source_ids") or [], ensure_ascii=False),
                     "query": row.get("query"),
                     "reference_answer": row.get("reference_answer"),
                     "answer": row.get("answer"),
@@ -179,6 +184,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             payload = case_payload(case, args)
             response = post_json(args.base_url, "/api/rag", payload, token=token, timeout=args.timeout)
             sources = response.get("sources", []) or []
+            generation_source_ids = response.get("generation_source_ids")
+            if not isinstance(generation_source_ids, list):
+                raise ValueError("A API nao retornou generation_source_ids; atualize e reinicie o chat-api.")
             results.append(
                 {
                     "case_id": case_id,
@@ -193,6 +201,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     "latency_ms": response.get("latency_ms"),
                     "answer": response.get("answer"),
                     "sources_count": len(sources),
+                    "generation_sources_count": len(generation_source_ids),
+                    "generation_source_ids": generation_source_ids,
                     "ragas": response.get("ragas", {}),
                     "sources": sources,
                 }

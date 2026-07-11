@@ -59,7 +59,12 @@ class RagasMetric(BaseModel):
 class RagasReport(BaseModel):
     evaluated: bool
     message: str | None = None
-    metrics: list[RagasMetric] = []
+    metrics: list[RagasMetric] = Field(default_factory=list)
+    ragas_version: str | None = None
+    evaluator_model: str | None = None
+    embedding_model: str | None = None
+    retrieved_contexts_count: int = 0
+    generation_contexts_count: int = 0
 
 
 class RagResponse(BaseModel):
@@ -71,6 +76,7 @@ class RagResponse(BaseModel):
     used_reranker: bool
     latency_ms: int
     sources: list[RagSource]
+    generation_source_ids: list[str] = Field(default_factory=list)
     ragas: RagasReport
 
 
@@ -78,4 +84,5 @@ class RagasEvaluationRequest(BaseModel):
     query: str = Field(min_length=1, max_length=4000)
     answer: str = Field(min_length=1, max_length=12000)
     sources: list[RagSource] = Field(default_factory=list)
+    generation_source_ids: list[str] | None = None
     reference_answer: str = Field(default="", max_length=12000)

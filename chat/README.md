@@ -22,7 +22,9 @@ Abra `http://localhost:8081`. A API do chat fica em `http://localhost:8011/docs`
 - Resposta gerada por API compativel com OpenAI, citando as fontes recuperadas.
 - Painel RAGAS oficial com Faithfulness, Answer relevancy, Context precision, Context recall e Factual correctness.
 
-`Context precision`, `Context recall` e `Factual correctness` usam melhor a resposta de referencia no campo opcional da tela. Sem referencia, o painel usa `ContextUtilization` como proxy para `Context precision` e deixa as metricas que exigem referencia sem nota.
+`Context precision`, `Context recall` e `Factual correctness` usam a resposta de referencia no campo opcional da tela. Sem referencia, o painel mostra `Context utilization` como uma metrica separada e deixa as metricas que exigem referencia sem nota.
+
+Para manter a avaliacao consistente, o chat registra os IDs dos chunks efetivamente enviados ao gerador. `Faithfulness` usa apenas esses chunks; as metricas de recuperacao usam todos os chunks retornados, sem truncamento adicional. O relatorio tambem registra a versao do RAGAS e os modelos do avaliador e de embeddings.
 
 ## Benchmark RAGAS oficial por ground truth
 
@@ -55,4 +57,4 @@ A geracao e o RAGAS oficial usam:
 LLM_API_KEY
 ```
 
-`LLM_BASE_URL` e `LLM_MODEL` continuam no `.env` para voce escolher o provedor/modelo. O RAGAS oficial usa o mesmo modelo por padrao e o embedding local `sentence-transformers/all-MiniLM-L6-v2`.
+`LLM_BASE_URL` e `LLM_MODEL` continuam no `.env` para voce escolher o provedor/modelo. O RAGAS oficial usa o mesmo provedor e modelo por padrao, mas aceita um juiz independente e fixo por meio de `RAGAS_MODEL`, `RAGAS_LLM_BASE_URL` e `RAGAS_LLM_API_KEY`. Para experimentos do artigo, prefira separar o juiz do modelo gerador. O embedding local padrao e `BAAI/bge-m3`.

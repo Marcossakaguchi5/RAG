@@ -6,7 +6,7 @@ from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from app.schemas import RagRequest, RagResponse, RagSource, RagasEvaluationRequest, RagasReport, SearchHit
-from app.services.answering import generate_answer
+from app.services.answering import generate_answer, select_generation_sources
 from app.services.ingest_client import get_ingest_client
 from app.services.ragas import evaluate_ragas
 from app.services.reranker import rerank
@@ -20,6 +20,7 @@ class RagGraphState(TypedDict, total=False):
     candidate_k: int
     hits: list[SearchHit]
     sources: list[RagSource]
+    generation_source_ids: list[str]
     answer: str
     ragas: RagasReport
 
@@ -51,8 +52,12 @@ def _rerank(state: RagGraphState) -> RagGraphState:
 
 def _answer(state: RagGraphState) -> RagGraphState:
     payload = state["payload"]
-    answer = generate_answer(payload.query, state.get("sources", []))
-    return {"answer": answer}
+    generation_sources = select_generation_sources(state.get("sources", []))
+    answer = generate_answer(payload.query, generation_sources)
+    return {
+        "answer": answer,
+        "generation_source_ids": [source.chunk_id for source in generation_sources],
+    }
 
 
 def run_ragas_evaluation(payload: RagasEvaluationRequest) -> RagasReport:
@@ -62,6 +67,7 @@ def run_ragas_evaluation(payload: RagasEvaluationRequest) -> RagasReport:
             payload.answer,
             payload.sources,
             payload.reference_answer.strip(),
+            payload.generation_source_ids,
         )
     except Exception as error:
         logger.exception("Falha ao avaliar RAGAS")
@@ -78,6 +84,7 @@ def _evaluate(state: RagGraphState) -> RagGraphState:
             query=payload.query,
             answer=state.get("answer", ""),
             sources=state.get("sources", []),
+            generation_source_ids=state.get("generation_source_ids", []),
             reference_answer=payload.reference_answer,
         )
     )
@@ -113,5 +120,6 @@ def run_rag_graph(payload: RagRequest) -> RagResponse:
         used_reranker=payload.use_reranker,
         latency_ms=round((time.perf_counter() - started_at) * 1000),
         sources=state.get("sources", []),
+        generation_source_ids=state.get("generation_source_ids", []),
         ragas=state.get("ragas", RagasReport(evaluated=False, message="A avaliacao RAGAS nao foi executada.")),
     )

@@ -29,11 +29,10 @@ class Settings(BaseSettings):
 
     max_context_characters: int = Field(default=24000, ge=2000)
     ragas_model: str = ""
-    ragas_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    ragas_llm_base_url: str = ""
+    ragas_llm_api_key: str = ""
+    ragas_embedding_model: str = "BAAI/bge-m3"
     ragas_embedding_device: str = ""
-    ragas_max_context_characters: int = Field(default=3000, ge=500)
-    ragas_max_sources: int = Field(default=3, ge=1, le=20)
-    ragas_parallel_workers: int = Field(default=4, ge=1, le=8)
 
     @property
     def allowed_origins(self) -> list[str]:
@@ -42,6 +41,14 @@ class Settings(BaseSettings):
     @property
     def resolved_ragas_model(self) -> str:
         return self.ragas_model or self.llm_model
+
+    @property
+    def resolved_ragas_base_url(self) -> str:
+        return self.ragas_llm_base_url or self.llm_base_url
+
+    @property
+    def resolved_ragas_api_key(self) -> str:
+        return self.ragas_llm_api_key or self.llm_api_key
 
 
 @lru_cache

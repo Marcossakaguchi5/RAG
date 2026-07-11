@@ -13,6 +13,7 @@ from app.schemas import (
     RagasReport,
 )
 from app.services.ingest_client import get_ingest_client
+from app.services.answering import prompt_sha256
 from app.services.rag_graph import run_rag_graph, run_ragas_evaluation
 
 settings = get_settings()
@@ -52,6 +53,39 @@ def auth_session() -> dict[str, str]:
 @api_router.get("/collections", response_model=list[CollectionOut])
 def list_collections() -> list[CollectionOut]:
     return get_ingest_client().collections()
+
+
+@api_router.get("/experiment-config")
+def experiment_config() -> dict[str, object]:
+    """Expose non-secret generation settings used by academic manifests."""
+
+    return {
+        "app_version": app.version,
+        "generator": {
+            "base_url": settings.llm_base_url,
+            "model": settings.llm_model,
+            "temperature": settings.llm_temperature,
+            "max_tokens": settings.llm_max_tokens,
+        },
+        "context": {
+            "max_characters": settings.max_context_characters,
+            "selection_policy": "rank_order_until_character_limit",
+        },
+        "prompt": {
+            "sha256": prompt_sha256(),
+            "language": "pt-BR",
+        },
+        "reranker": {
+            "type": "heuristic_retrieval_score_plus_lexical_overlap",
+            "retrieval_weight": 0.62,
+            "lexical_weight": 0.38,
+        },
+        "ragas": {
+            "model": settings.resolved_ragas_model,
+            "base_url": settings.resolved_ragas_base_url,
+            "embedding_model": settings.ragas_embedding_model,
+        },
+    }
 
 
 @api_router.post("/rag", response_model=RagResponse)

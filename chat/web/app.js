@@ -192,7 +192,7 @@ function renderRagas(report) {
     </div>
   `).join("");
   byId("ragas-note").textContent = report.evaluated
-    ? report.message || "Notas de 0 a 1 calculadas pela biblioteca oficial ragas."
+    ? report.message || "Valores brutos calculados pela biblioteca oficial ragas."
     : report.message || "Metricas nao calculadas.";
 }
 
@@ -229,7 +229,7 @@ function ragasMetricValues(report = {}) {
 function buildRagExport() {
   if (!state.lastRagPayload || !state.lastRagResult) return null;
   return {
-    schema_version: "1.0",
+    schema_version: "1.1",
     exported_at: new Date().toISOString(),
     app: "chat",
     export_type: "rag_answer",
@@ -263,8 +263,15 @@ function ragExportRows(exportData) {
     used_reranker: response.used_reranker,
     latency_ms: response.latency_ms,
     source_count: response.sources.length,
+    generation_source_count: response.generation_source_ids?.length || 0,
+    generation_source_ids: response.generation_source_ids || [],
     ragas_evaluated: response.ragas?.evaluated,
     ragas_message: response.ragas?.message,
+    ragas_version: response.ragas?.ragas_version,
+    ragas_evaluator_model: response.ragas?.evaluator_model,
+    ragas_embedding_model: response.ragas?.embedding_model,
+    ragas_retrieved_contexts_count: response.ragas?.retrieved_contexts_count,
+    ragas_generation_contexts_count: response.ragas?.generation_contexts_count,
     request_json: exportData.request,
     ragas_json: response.ragas,
     response_json: response,
@@ -389,6 +396,7 @@ function bindRagas() {
         query: state.lastRagPayload.query,
         answer: state.lastRagResult.answer,
         sources: state.lastRagResult.sources,
+        generation_source_ids: state.lastRagResult.generation_source_ids,
         reference_answer: byId("reference-answer").value.trim(),
       });
       state.lastRagResult.ragas = report;
@@ -435,6 +443,8 @@ function bindExport() {
       "used_reranker",
       "latency_ms",
       "source_count",
+      "generation_source_count",
+      "generation_source_ids",
       "rank",
       "retrieval_rank",
       "chunk_id",
@@ -447,6 +457,11 @@ function bindExport() {
       "bm25_score",
       "rerank_score",
       "ragas_evaluated",
+      "ragas_version",
+      "ragas_evaluator_model",
+      "ragas_embedding_model",
+      "ragas_retrieved_contexts_count",
+      "ragas_generation_contexts_count",
       "ragas_faithfulness",
       "ragas_answer_relevancy",
       "ragas_context_precision",
