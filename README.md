@@ -43,7 +43,7 @@ chat/
 |   |-- web/                # Interface web estática
 |   |-- docker-compose.yml
 |   `-- README.md
-|-- shared/                 # Espaço para arquivos compartilhados
+|-- experiments/            # Protocolo acadêmico, ground truth e manifests
 `-- LICENSE
 ```
 
@@ -126,9 +126,16 @@ O projeto inclui dois caminhos de avaliação:
 - No `ingest`, métricas clássicas de recuperação como Precision@K, Recall@K, MAP, NDCG@K e MRR, desde que exista ground truth de chunks relevantes.
 - No `chat`, relatório RAGAS oficial com Faithfulness, Answer relevancy, Context precision, Context recall e Factual correctness.
 
-Há também um benchmark SciQ em `ingest/api/benchmarks/sciq/`.
+Há também um benchmark SciQ em `ingest/api/benchmarks/sciq/`. O desenho acadêmico
+consolidado, com RI como estudo principal e RAG como extensão, está em
+[PLANO_EXPERIMENTAL.md](PLANO_EXPERIMENTAL.md). O ground truth canônico de PDFs e o
+materializador de evidências para chunks ficam em
+[experiments/groundtruth/](experiments/groundtruth/README.md).
 
-Os comandos consolidados para SciQ, ground truth manual do `ingest` e ground truth RAGAS do `chat` estão em [BENCHMARKS.md](/home/marcelo/Documents/ciag/unesp/finalRag/RAG/BENCHMARKS.md).
+O roteiro sequencial para executar SciQ, PDF/RI, ablação de chunking e RAG/RAGAS está
+em [EXECUCAO_COMPLETA.md](EXECUCAO_COMPLETA.md).
+
+Os comandos consolidados para SciQ, ground truth manual do `ingest` e ground truth RAGAS do `chat` estão em [BENCHMARKS.md](BENCHMARKS.md).
 
 ## Comandos úteis
 

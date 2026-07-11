@@ -11,13 +11,19 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
-
+.venv-academic/*
 .venv/
 venv/
 
 node_modules/
 dist/
 build/
+
+experiments/runs/**
+!experiments/runs/**/
+!experiments/runs/**/README.md
+!experiments/runs/**/manifest.json
+experiments/data/
 
 .DS_Store
 .idea/

@@ -1,10 +1,34 @@
 # Comandos de benchmarks
 
-Este arquivo concentra os comandos para rodar as tres avaliacoes do projeto:
+Este arquivo concentra os comandos dos tres estudos, que compartilham o mesmo nucleo
+de recuperacao:
 
 - SciQ: baseline automatizada de recuperacao no `ingest`.
-- Ground truth manual do ingest: perguntas suas + `chunk_ids` relevantes.
-- Ground truth RAGAS oficial do chat: perguntas suas + resposta esperada.
+- PDF: perguntas, respostas e evidencias canonicas materializadas para os chunks.
+- RAG: extensao exploratoria com as mesmas perguntas e respostas do estudo PDF.
+
+O foco academico e RI. O RAG so deve ser executado depois que o ground truth de PDF
+estiver congelado. O desenho completo, as RQs e os controles estatisticos estao em
+[PLANO_EXPERIMENTAL.md](PLANO_EXPERIMENTAL.md).
+O roteiro recomendado, já com ordem, serviços, IDs e saídas, está em
+[EXECUCAO_COMPLETA.md](EXECUCAO_COMPLETA.md).
+
+Para criar uma rodada nova sem sobrescrever a baseline existente, prefira o
+orquestrador:
+
+```bash
+python3 experiments/run_experiment.py sciq \
+  --qdrant-url http://localhost:6335 \
+  --dataset-revision 2c94ad3e1aafab77146f384e23536f97a4849815 \
+  --embedding-model-revision 5617a9f61b028005a4858fdac845db406aefb181
+python3 experiments/run_experiment.py pdf-ir --help
+python3 experiments/run_experiment.py rag --help
+```
+
+Cada execução acadêmica usa um diretório timestampado em
+`experiments/runs/novas/<estudo>/` e grava um `manifest.json`. As rodadas anteriores
+ficam congeladas em `experiments/runs/antigos/`. Os comandos detalhados abaixo
+continuam disponíveis para diagnóstico.
 
 ## Antes de rodar
 
@@ -42,6 +66,55 @@ Rodar tudo:
 python benchmarks/sciq/run_all.py --collection sciq_baseline --recreate
 ```
 
+Rodar tudo e ja exportar os casos para o runner manual do ingest (`query -> relevant_chunk_ids`):
+
+```bash
+python benchmarks/sciq/run_all.py \
+  --collection sciq_baseline \
+  --recreate \
+  --export-groundtruth
+```
+
+Rodar tudo, exportar ground truth e gerar graficos:
+
+```bash
+python benchmarks/sciq/run_all.py \
+  --collection sciq_baseline \
+  --recreate \
+  --export-groundtruth \
+  --plot-results
+```
+
+Por padrão, o SciQ usa `recursive_text`. Para comparar chunking textual, rode coleções separadas:
+
+```bash
+python benchmarks/sciq/run_all.py \
+  --collection sciq_recursive \
+  --recreate \
+  --chunking-strategy recursive_text \
+  --export-groundtruth \
+  --plot-results
+
+python benchmarks/sciq/run_all.py \
+  --collection sciq_fixed_token \
+  --recreate \
+  --chunking-strategy fixed_token \
+  --export-groundtruth \
+  --plot-results
+```
+
+As estratégias `docling_*` são para PDFs na aplicação; no SciQ, o corpus já vem em texto.
+
+Preparar/ingerir e exportar o ground truth sem rodar retrieval/evaluation nessa etapa:
+
+```bash
+python benchmarks/sciq/run_all.py \
+  --collection sciq_baseline \
+  --recreate \
+  --export-groundtruth \
+  --skip-retrieval
+```
+
 Smoke test rapido:
 
 ```bash
@@ -77,42 +150,130 @@ ingest/api/benchmarks/sciq/data/runs/YYYYMMDD-HHMMSS/
 ├── retrieval/{method}_{split}.jsonl
 ├── results/{method}_{split}_metrics.json
 ├── results/{method}_{split}_metrics.csv
+├── statistics/metrics_with_ci.{csv,json}
+├── statistics/paired_differences.{csv,json}
 └── summary_{split}.json
 ```
 
-## 2. Ground truth manual do ingest
+Os artefatos `statistics/` são gerados pelo orquestrador acadêmico. Eles incluem
+IC95% bootstrap por método e contrastes pareados, com McNemar exato e ajuste de Holm
+para Hit@k.
 
-Use quando quiser avaliar suas proprias collections. Aqui voce monta uma bateria manual com pergunta e lista de chunks relevantes. O script chama `/api/search` e compara os resultados com `relevant_chunk_ids`.
+Converter SciQ para o runner manual do ingest, gerando automaticamente `query -> relevant_chunk_ids`:
 
-Arquivo de exemplo:
+```bash
+cd ingest/api
+python benchmarks/sciq/export_groundtruth.py \
+  --collection sciq_baseline \
+  --split test \
+  --output benchmarks/groundtruth/sciq_ground_truth.jsonl
 
-```json
-{"id":"q1","collection_name":"rag_chunks","query":"Qual ponto do documento responde esta pergunta?","relevant_chunk_ids":["chunk_id_1","chunk_id_2"]}
+INGEST_APP_PASSWORD=alterar-esta-senha python benchmarks/groundtruth/run_groundtruth.py \
+  --cases benchmarks/groundtruth/sciq_ground_truth.jsonl \
+  --base-url http://localhost:8010 \
+  --collection sciq_baseline
 ```
 
-Crie seu arquivo, por exemplo:
+Gerar graficos de uma rodada ja existente:
+
+```bash
+cd ingest/api
+python benchmarks/sciq/plot_results.py \
+  --run-dir benchmarks/sciq/data/runs/YYYYMMDD-HHMMSS
+```
+
+Saida dos graficos:
 
 ```text
-ingest/api/benchmarks/groundtruth/meu_ground_truth.jsonl
+plots/
+├── metrics_at_10.svg
+├── metric_curves.svg
+├── latency_by_method.svg
+├── first_relevant_rank.svg
+├── metrics_consolidated.csv
+└── report.html
 ```
 
-Rodar `bm25`, `dense` e `hybrid`:
+## 2. Pipeline de RI com PDFs
+
+No estudo academico, nao anote UUIDs do Qdrant como fonte primaria. Guarde pergunta,
+resposta esperada e uma citacao do PDF. Depois materialize automaticamente a citacao
+para os chunks de cada configuracao. Assim, trocar o chunking ou reingerir o PDF nao
+invalida a anotacao original.
+
+Caso mestre:
+
+```json
+{"id":"q1","split":"test","category":"conceitual","query":"Pergunta sobre o material","reference_answer":"Resposta sustentada pelo PDF.","evidence":[{"document_name":"material.pdf","page":12,"quote":"Citacao literal que sustenta a resposta.","relevance":2}]}
+```
+
+O esquema, a politica de normalizacao e os testes ficam em
+`experiments/groundtruth/`.
+
+### 2.0 Auditar citações no PDF-fonte
+
+Antes de criar os chunks, valide hash, página e correspondência literal:
+
+```bash
+python3 experiments/groundtruth/audit_pdf.py \
+  --cases experiments/cases/freire_pilot.draft.jsonl \
+  --pdf importancia_ato_ler.pdf \
+  --report experiments/data/freire-pilot/source-audit.json
+```
+
+O conjunto piloto atual possui 32 casos e 37 evidências, todos ainda com estado
+`draft/silver`; ele precisa de revisão humana antes de constituir o teste final.
+
+### 2.1 Exportar os chunks da collection
+
+Na raiz do repositorio:
+
+```bash
+python3 ingest/api/benchmarks/groundtruth/export_chunks.py \
+  --collection freire_recursive \
+  --qdrant-url http://localhost:6335 \
+  --pdf importancia_ato_ler.pdf \
+  --output experiments/data/freire_recursive/chunks.jsonl
+```
+
+### 2.2 Materializar evidencias para chunks
+
+```bash
+python3 experiments/groundtruth/materialize.py materialize \
+  --cases experiments/data/freire/cases.jsonl \
+  --chunks experiments/data/freire_recursive/chunks.jsonl \
+  --ingest-out experiments/data/freire_recursive/ingest-groundtruth.jsonl \
+  --ragas-out experiments/data/freire_recursive/ragas-groundtruth.jsonl \
+  --report-out experiments/data/freire_recursive/matching-report.json
+```
+
+O comando falha se alguma evidencia nao for localizada. O relatorio registra
+cobertura, melhores candidatos e hashes dos insumos.
+
+O runner usa `relevant_chunk_ids` para Hit/Precision/Recall/MAP/MRR e
+`relevance_by_chunk` para nDCG graduada. Qualquer caso com erro invalida a rodada por
+padrao, embora os artefatos de diagnostico sejam preservados.
+
+### 2.3 Rodar BM25, denso e hibrido
 
 ```bash
 cd ingest/api
 INGEST_APP_PASSWORD=alterar-esta-senha python benchmarks/groundtruth/run_groundtruth.py \
-  --cases benchmarks/groundtruth/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ingest-groundtruth.jsonl \
   --base-url http://localhost:8010 \
-  --collection rag_chunks
+  --collection freire_recursive
 ```
 
-Rodar apenas um metodo:
+Para a comparacao principal, mantenha um chunking fixo. Execute a ablation de
+chunking separadamente, repetindo exportacao e materializacao para outra collection.
+
+Rodar apenas um metodo continua disponivel para diagnostico:
 
 ```bash
 INGEST_APP_PASSWORD=alterar-esta-senha python benchmarks/groundtruth/run_groundtruth.py \
-  --cases benchmarks/groundtruth/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ingest-groundtruth.jsonl \
   --base-url http://localhost:8010 \
-  --collection rag_chunks \
+  --collection freire_recursive \
   --methods hybrid
 ```
 
@@ -120,9 +281,9 @@ Rodar contra a VPS:
 
 ```bash
 INGEST_APP_PASSWORD=alterar-esta-senha python benchmarks/groundtruth/run_groundtruth.py \
-  --cases benchmarks/groundtruth/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ingest-groundtruth.jsonl \
   --base-url https://ingest.136-248-79-252.sslip.io \
-  --collection rag_chunks
+  --collection freire_recursive
 ```
 
 Saida:
@@ -134,9 +295,28 @@ ingest/api/benchmarks/groundtruth/data/runs/YYYYMMDD-HHMMSS/
 └── summary.json
 ```
 
+Quando executado pelo orquestrador, o diretorio superior da rodada tambem recebe:
+
+```text
+plots/
+├── metrics_with_ci.csv
+├── metrics_with_ci.json
+├── metrics_with_ci.svg
+├── paired_differences.csv
+├── paired_differences.json
+├── paired_chunking_differences.csv
+├── paired_chunking_differences.json
+└── report.html
+```
+
 ## 3. Ground truth RAGAS oficial do chat
 
-Use quando quiser avaliar a resposta gerada pelo RAG. Aqui o ground truth e uma resposta esperada, nao uma lista de chunks. O fluxo academico tem duas etapas: primeiro coletar respostas e fontes do chat; depois calcular as metricas com a biblioteca oficial `ragas`.
+Use somente como extensao do estudo PDF. A projecao RAGAS ja e gerada pelo mesmo
+materializador, evitando um segundo ground truth independente. O fluxo tem duas
+etapas: primeiro coletar respostas, fontes recuperadas e IDs dos chunks efetivamente
+enviados ao gerador; depois calcular as metricas offline. `Faithfulness` usa os
+contextos enviados ao gerador, enquanto `context_precision` e `context_recall` usam
+todos os contextos recuperados.
 
 Arquivo de exemplo:
 
@@ -144,10 +324,10 @@ Arquivo de exemplo:
 {"id":"q1","collection_name":"rag_chunks","query":"Pergunta para o RAG","reference_answer":"Resposta esperada baseada nos documentos."}
 ```
 
-Crie seu arquivo, por exemplo:
+Use a saida gerada na Secao 2, por exemplo:
 
 ```text
-chat/api/benchmarks/ragas/meu_ground_truth.jsonl
+experiments/data/freire_recursive/ragas-groundtruth.jsonl
 ```
 
 Instalar dependencias oficiais:
@@ -162,18 +342,18 @@ Coletar respostas local:
 ```bash
 cd chat/api
 CHAT_APP_PASSWORD=alterar-esta-senha python benchmarks/ragas/run_groundtruth.py \
-  --cases benchmarks/ragas/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ragas-groundtruth.jsonl \
   --base-url http://localhost:8011 \
-  --collection rag_chunks
+  --collection freire_recursive
 ```
 
 Coletar respostas sem reranker:
 
 ```bash
 CHAT_APP_PASSWORD=alterar-esta-senha python benchmarks/ragas/run_groundtruth.py \
-  --cases benchmarks/ragas/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ragas-groundtruth.jsonl \
   --base-url http://localhost:8011 \
-  --collection rag_chunks \
+  --collection freire_recursive \
   --no-reranker
 ```
 
@@ -181,9 +361,9 @@ Coletar respostas contra a VPS:
 
 ```bash
 CHAT_APP_PASSWORD=alterar-esta-senha python benchmarks/ragas/run_groundtruth.py \
-  --cases benchmarks/ragas/meu_ground_truth.jsonl \
+  --cases ../../experiments/data/freire_recursive/ragas-groundtruth.jsonl \
   --base-url https://chat.136-248-79-252.sslip.io \
-  --collection rag_chunks
+  --collection freire_recursive
 ```
 
 Calcular RAGAS oficial na ultima rodada:
@@ -229,16 +409,16 @@ Os CSVs sao propositalmente amplos: incluem colunas normalizadas e colunas `*_js
 ## Protocolo de replicabilidade
 
 1. Fixe o corpus/collection e registre estrategia de chunking, modelo dense, sparse, reranker, LLM e parametros (`top_k`, `candidate_k`).
-2. Monte ground truths versionados:
-   - `ingest`: `query` + `relevant_chunk_ids`.
-   - `chat`: `query` + `reference_answer`.
+2. Monte um unico ground truth mestre: `query`, `reference_answer` e evidencias
+   canonicas; derive dele os `relevant_chunk_ids` e os casos RAGAS.
 3. Rode todos os metodos nos mesmos casos (`bm25`, `dense`, `hybrid`, com/sem reranker quando aplicavel).
 4. Preserve os artefatos brutos (`results.jsonl`), tabelas (`*.csv`) e sumarios (`*.json`) gerados em `benchmarks/**/data/runs/YYYYMMDD-HHMMSS/`.
 5. Faca as analises estatisticas sobre dados pareados por `case_id/query` e metodo:
-   - Friedman para comparar mais de dois metodos.
-   - Wilcoxon pareado para pos-teste entre pares.
-   - Holm-Bonferroni para corrigir multiplas comparacoes.
-   - Cliff's Delta para tamanho de efeito.
+   - bootstrap pareado e IC95% para diferencas de MRR/nDCG.
+   - McNemar para Hit@k entre pares.
+   - teste de randomizacao ou Wilcoxon pareado quando aplicavel.
+   - procedimento de Holm para corrigir multiplas comparacoes.
+   - tamanho de efeito adequado ao desenho pareado.
    - Spearman/Kendall para correlacionar metricas de RI (`precision`, `recall`, `map`, `ndcg`, `mrr`) com metricas RAG/RAGAS.
 6. Gere os graficos a partir dos CSVs consolidados: tabela principal, heatmap de correlacao, boxplot por metodo, barras de medias/IC, scatter RI x RAG, pipeline visual e prints das telas.
 
@@ -247,5 +427,5 @@ Os CSVs sao propositalmente amplos: incluem colunas normalizadas e colunas `*_js
 | Caso | Use |
 | --- | --- |
 | Baseline academica automatizada de recuperacao | SciQ |
-| Comparar `bm25`, `dense` e `hybrid` nos seus documentos | Ground truth manual do ingest |
-| Avaliar se a resposta final do chat esta correta e fiel | Ground truth RAGAS oficial do chat |
+| Comparar `bm25`, `dense` e `hybrid` nos PDFs | Ground truth canonico + materializacao |
+| Avaliar a resposta final sem duplicar o gabarito | Projecao RAGAS do mesmo ground truth |
