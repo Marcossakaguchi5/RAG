@@ -1,3 +1,4 @@
 data/
 __pycache__/
 *.log
+sciq_ground_truth*.jsonl

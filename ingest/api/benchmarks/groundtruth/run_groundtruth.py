@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 from datetime import datetime
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
+from time import perf_counter
 from typing import Any
 from urllib import error, request
 
@@ -15,7 +17,14 @@ BENCHMARK_DIR = Path(__file__).resolve().parent
 DEFAULT_DATA_DIR = BENCHMARK_DIR / "data"
 DEFAULT_CASES_PATH = BENCHMARK_DIR / "ground_truth.example.jsonl"
 METHODS = {"bm25", "dense", "hybrid"}
-METRIC_FIELDS = ["precision_at_k", "recall_at_k", "map", "ndcg_at_k", "mrr"]
+METRIC_FIELDS = [
+    "hit_rate_at_k",
+    "precision_at_k",
+    "recall_at_k",
+    "map",
+    "ndcg_at_k",
+    "mrr",
+]
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -87,6 +96,74 @@ def relevant_ids_for_case(case: dict[str, Any]) -> list[str]:
     return []
 
 
+def relevance_grades_for_case(case: dict[str, Any]) -> dict[str, float]:
+    raw = case.get("relevance_by_chunk")
+    if raw is None:
+        return {chunk_id: 1.0 for chunk_id in relevant_ids_for_case(case)}
+    if not isinstance(raw, dict):
+        raise ValueError("relevance_by_chunk deve ser um objeto chunk_id -> grau.")
+
+    grades: dict[str, float] = {}
+    for raw_chunk_id, raw_grade in raw.items():
+        chunk_id = str(raw_chunk_id).strip()
+        if not chunk_id or isinstance(raw_grade, bool):
+            raise ValueError("relevance_by_chunk contem chunk ou grau invalido.")
+        try:
+            grade = float(raw_grade)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"Grau invalido para {chunk_id!r}: {raw_grade!r}") from error
+        if not math.isfinite(grade) or grade <= 0:
+            raise ValueError(f"Grau de relevancia deve ser positivo para {chunk_id!r}.")
+        grades[chunk_id] = grade
+
+    relevant_ids = set(relevant_ids_for_case(case))
+    if relevant_ids and relevant_ids != set(grades):
+        raise ValueError(
+            "relevant_chunk_ids e relevance_by_chunk devem conter os mesmos IDs."
+        )
+    if not grades:
+        raise ValueError("relevance_by_chunk nao pode ser vazio.")
+    return grades
+
+
+def calculate_ranked_metrics(
+    result_ids: list[str],
+    relevance_by_chunk: dict[str, float],
+    top_k: int,
+) -> dict[str, float]:
+    ranked = result_ids[:top_k]
+    relevant_ids = set(relevance_by_chunk)
+    hits = [chunk_id in relevant_ids for chunk_id in ranked]
+    hit_count = sum(hits)
+
+    accumulated_precision = 0.0
+    reciprocal_rank = 0.0
+    seen_relevant = 0
+    dcg = 0.0
+    for position, chunk_id in enumerate(ranked, start=1):
+        if chunk_id in relevant_ids:
+            seen_relevant += 1
+            accumulated_precision += seen_relevant / position
+            if reciprocal_rank == 0.0:
+                reciprocal_rank = 1 / position
+        grade = relevance_by_chunk.get(chunk_id, 0.0)
+        dcg += (2**grade - 1) / math.log2(position + 1)
+
+    ideal_grades = sorted(relevance_by_chunk.values(), reverse=True)[:top_k]
+    ideal_dcg = sum(
+        (2**grade - 1) / math.log2(position + 1)
+        for position, grade in enumerate(ideal_grades, start=1)
+    )
+    return {
+        "hit_rate_at_k": round(1.0 if hit_count else 0.0, 6),
+        "precision_at_k": round(hit_count / top_k, 6),
+        "recall_at_k": round(hit_count / len(relevant_ids), 6),
+        "map": round(accumulated_precision / len(relevant_ids), 6),
+        "ndcg_at_k": round(dcg / ideal_dcg if ideal_dcg else 0.0, 6),
+        "mrr": round(reciprocal_rank, 6),
+    }
+
+
 def case_payload(case: dict[str, Any], args: argparse.Namespace, method: str) -> dict[str, Any]:
     query = str(case.get("query") or case.get("question") or "").strip()
     relevant_ids = relevant_ids_for_case(case)
@@ -122,7 +199,20 @@ def summarize(rows: list[dict[str, Any]], args: argparse.Namespace, run_dir: Pat
                 if row.get("metrics", {}).get(field) is not None
             ]
             averages[field] = round(mean(values), 4) if values else None
-        method_summaries[method] = {"ok_cases": len(method_rows), "metric_averages": averages}
+        latencies = sorted(
+            float(row["latency_ms"])
+            for row in method_rows
+            if row.get("latency_ms") is not None
+        )
+        p95_index = max(0, math.ceil(0.95 * len(latencies)) - 1) if latencies else 0
+        method_summaries[method] = {
+            "ok_cases": len(method_rows),
+            "metric_averages": averages,
+            "latency_ms": {
+                "median": round(median(latencies), 3) if latencies else None,
+                "p95": round(latencies[p95_index], 3) if latencies else None,
+            },
+        }
 
     return {
         "run_dir": str(run_dir),
@@ -145,9 +235,13 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "collection_name",
         "method",
         "top_k",
+        "split",
+        "category",
+        "latency_ms",
         *METRIC_FIELDS,
         "retrieved_chunk_ids",
         "relevant_chunk_ids",
+        "relevance_by_chunk",
         "query",
         "error",
     ]
@@ -162,9 +256,15 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
                     "collection_name": row.get("collection_name"),
                     "method": row.get("method"),
                     "top_k": row.get("top_k"),
+                    "split": row.get("split"),
+                    "category": row.get("category"),
+                    "latency_ms": row.get("latency_ms"),
                     **row.get("metrics", {}),
                     "retrieved_chunk_ids": ",".join(row.get("retrieved_chunk_ids", [])),
                     "relevant_chunk_ids": ",".join(row.get("relevant_chunk_ids", [])),
+                    "relevance_by_chunk": json.dumps(
+                        row.get("relevance_by_chunk", {}), ensure_ascii=False
+                    ),
                     "query": row.get("query"),
                     "error": row.get("error"),
                 }
@@ -187,9 +287,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for method in methods_for_case(case, default_methods):
             try:
                 payload = case_payload(case, args, method)
+                relevance_by_chunk = relevance_grades_for_case(case)
+                request_started_at = perf_counter()
                 response = post_json(args.base_url, "/api/search", payload, token=token, timeout=args.timeout)
+                latency_ms = round((perf_counter() - request_started_at) * 1000, 3)
                 retrieved_ids = [str(item.get("chunk_id", "")) for item in response.get("results", [])]
-                metrics = response.get("metrics", {})
+                metrics = calculate_ranked_metrics(
+                    retrieved_ids,
+                    relevance_by_chunk,
+                    int(response.get("top_k", payload["top_k"])),
+                )
                 results.append(
                     {
                         "case_id": case_id,
@@ -198,9 +305,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                         "collection_name": payload["collection_name"],
                         "method": response.get("method", method),
                         "top_k": response.get("top_k", payload["top_k"]),
+                        "split": case.get("split"),
+                        "category": case.get("category"),
+                        "latency_ms": latency_ms,
                         "relevant_chunk_ids": payload["relevant_chunk_ids"],
+                        "relevance_by_chunk": relevance_by_chunk,
                         "retrieved_chunk_ids": retrieved_ids,
-                        "metrics": {field: metrics.get(field) for field in METRIC_FIELDS},
+                        "metrics": metrics,
                         "results": response.get("results", []),
                     }
                 )
@@ -227,8 +338,18 @@ def main() -> None:
     parser.add_argument("--methods", default="bm25,dense,hybrid")
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--timeout", type=float, default=120)
-    summary = run(parser.parse_args())
+    parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Mantem codigo de saida zero mesmo com casos incompletos; nao recomendado para a rodada final.",
+    )
+    args = parser.parse_args()
+    summary = run(args)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if summary["error_rows"] and not args.continue_on_error:
+        raise SystemExit(
+            f"Rodada contem {summary['error_rows']} erro(s); artefatos foram salvos para diagnostico."
+        )
 
 
 if __name__ == "__main__":
