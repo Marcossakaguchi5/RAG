@@ -10,6 +10,13 @@ from common import DEFAULT_DATA_DIR, parse_k_values, read_jsonl, write_json
 from metrics import average_metrics, calculate_query_metrics
 
 
+def load_expected_query_ids(path: Path, split: str, limit_queries: int | None = None) -> list[str]:
+    rows = [row for row in read_jsonl(path) if row["split"] == split]
+    if limit_queries is not None:
+        rows = rows[:limit_queries]
+    return [str(row["query_id"]) for row in rows]
+
+
 def load_qrels(path: Path, split: str) -> dict[str, set[str]]:
     qrels: dict[str, set[str]] = defaultdict(set)
     for row in read_jsonl(path):
@@ -32,23 +39,39 @@ def load_run(path: Path, split: str) -> dict[str, list[str]]:
     }
 
 
-def evaluate(qrels_path: Path, run_path: Path, split: str, k_values: list[int]) -> dict[str, Any]:
+def evaluate(
+    qrels_path: Path,
+    run_path: Path,
+    split: str,
+    k_values: list[int],
+    expected_query_ids: list[str],
+) -> dict[str, Any]:
     qrels = load_qrels(qrels_path, split)
     run = load_run(run_path, split)
+    expected_query_ids = list(dict.fromkeys(str(query_id) for query_id in expected_query_ids))
+    expected_query_id_set = set(expected_query_ids)
+    evaluated_run = {
+        query_id: result_ids
+        for query_id, result_ids in run.items()
+        if query_id in expected_query_id_set
+    }
 
     metrics_by_k = {}
     for k in k_values:
         per_query = [
-            calculate_query_metrics(run.get(query_id, []), relevant_ids, k)
-            for query_id, relevant_ids in qrels.items()
+            calculate_query_metrics(evaluated_run.get(query_id, []), qrels.get(query_id, set()), k)
+            for query_id in expected_query_ids
         ]
         metrics_by_k[f"@{k}"] = average_metrics(per_query)
 
     return {
         "split": split,
-        "qrels_queries": len(qrels),
-        "run_queries": len(run),
-        "missing_queries": len(set(qrels) - set(run)),
+        "expected_queries": len(expected_query_ids),
+        "qrels_queries": len(expected_query_id_set & set(qrels)),
+        "run_queries": len(evaluated_run),
+        "missing_queries": len(expected_query_id_set - set(evaluated_run)),
+        "missing_qrels_queries": len(expected_query_id_set - set(qrels)),
+        "unexpected_run_queries": len(set(run) - expected_query_id_set),
         "run_path": str(run_path),
         "metrics": metrics_by_k,
     }
@@ -66,22 +89,35 @@ def write_csv_summary(path: Path, payload: dict[str, Any]) -> None:
             writer.writerow({"split": payload["split"], "k": k_label.removeprefix("@"), **metrics})
 
 
-def main() -> None:
+def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Avalia um run de retrieval SciQ contra qrels.")
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    parser.add_argument("--queries", type=Path, default=None)
     parser.add_argument("--run", type=Path, required=True)
     parser.add_argument("--split", choices=["train", "validation", "test"], default="test")
+    parser.add_argument("--limit-queries", type=int, default=None)
     parser.add_argument("--k", default="1,3,5,10")
     parser.add_argument("--output-json", type=Path, default=None)
     parser.add_argument("--output-csv", type=Path, default=None)
-    args = parser.parse_args()
+    return parser
+
+
+def main() -> None:
+    args = build_argument_parser().parse_args()
 
     k_values = parse_k_values(args.k)
+    queries_path = args.queries or args.data_dir / "processed" / "queries.jsonl"
+    expected_query_ids = load_expected_query_ids(
+        queries_path,
+        split=args.split,
+        limit_queries=args.limit_queries,
+    )
     payload = evaluate(
         qrels_path=args.data_dir / "processed" / "qrels.jsonl",
         run_path=args.run,
         split=args.split,
         k_values=k_values,
+        expected_query_ids=expected_query_ids,
     )
 
     stem = args.run.stem

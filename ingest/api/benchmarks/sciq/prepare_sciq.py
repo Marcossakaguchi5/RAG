@@ -14,7 +14,7 @@ def make_doc_id(text: str) -> str:
     return f"sciq_doc_{digest}"
 
 
-def load_sciq() -> Any:
+def load_sciq(revision: str | None = None) -> Any:
     try:
         from datasets import load_dataset
     except ImportError as error:
@@ -22,12 +22,18 @@ def load_sciq() -> Any:
             "Dependência ausente: instale as dependências do benchmark com "
             "`pip install -r benchmarks/sciq/requirements-benchmark.txt`."
         ) from error
-    return load_dataset("allenai/sciq")
+    kwargs = {"revision": revision} if revision else {}
+    return load_dataset("allenai/sciq", **kwargs)
 
 
-def prepare(data_dir: Path, min_support_words: int, seed: int) -> dict[str, int]:
+def prepare(
+    data_dir: Path,
+    min_support_words: int,
+    seed: int,
+    dataset_revision: str | None = None,
+) -> dict[str, Any]:
     random.seed(seed)
-    dataset = load_sciq()
+    dataset = load_sciq(dataset_revision)
 
     docs: dict[str, dict[str, Any]] = {}
     queries: list[dict[str, Any]] = []
@@ -83,7 +89,20 @@ def prepare(data_dir: Path, min_support_words: int, seed: int) -> dict[str, int]
     query_count = write_jsonl(processed_dir / "queries.jsonl", queries)
     qrel_count = write_jsonl(processed_dir / "qrels.jsonl", qrels)
 
-    return {"documents": doc_count, "queries": query_count, "qrels": qrel_count}
+    return {
+        "dataset": "allenai/sciq",
+        "dataset_revision_requested": dataset_revision or "main",
+        "dataset_version": str(dataset["train"].info.version),
+        "dataset_fingerprints": {
+            split: str(getattr(dataset[split], "_fingerprint", ""))
+            for split in ("train", "validation", "test")
+        },
+        "min_support_words": min_support_words,
+        "seed": seed,
+        "documents": doc_count,
+        "queries": query_count,
+        "qrels": qrel_count,
+    }
 
 
 def main() -> None:
@@ -91,9 +110,15 @@ def main() -> None:
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     parser.add_argument("--min-support-words", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dataset-revision", default="main")
     args = parser.parse_args()
 
-    counts = prepare(args.data_dir, args.min_support_words, args.seed)
+    counts = prepare(
+        args.data_dir,
+        args.min_support_words,
+        args.seed,
+        args.dataset_revision,
+    )
     print(
         "SciQ preparado: "
         f"{counts['documents']} documentos, {counts['queries']} queries, {counts['qrels']} qrels."

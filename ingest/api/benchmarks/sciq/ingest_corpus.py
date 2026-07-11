@@ -24,8 +24,13 @@ def chunk_id_for_doc(doc_id: str, ordinal: int) -> str:
 
 
 def recreate_collection(collection_name: str) -> None:
+    # A dimensão da coleção depende do modelo. Inicialize-o antes do bloco que
+    # transforma falhas de comunicação com o Qdrant em uma mensagem específica.
+    # Assim, erros ao carregar o modelo não são reportados como erro de conexão.
+    from app.services.embeddings import get_embedding_service
     from app.services.vector_store import ensure_collection, get_vector_client
 
+    get_embedding_service()
     client = get_vector_client()
     try:
         if client.collection_exists(collection_name):
@@ -41,17 +46,37 @@ def iter_batches(rows: list[dict[str, str]], batch_size: int) -> list[list[dict[
     return [rows[index : index + batch_size] for index in range(0, len(rows), batch_size)]
 
 
-def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: bool) -> int:
+SUPPORTED_TEXT_CHUNKING_STRATEGIES = {"fixed_token", "recursive_text"}
+
+
+def ingest(
+    corpus_path: Path,
+    collection_name: str,
+    batch_size: int,
+    recreate: bool,
+    chunking_strategy: str = "recursive_text",
+) -> int:
     from qdrant_client import models
 
     from app.services.embeddings import get_embedding_service
-    from app.services.pdf_processor import chunk_text
+    from app.services.pdf_processor import chunk_text, normalize_chunking_strategy
     from app.services.sparse_embeddings import get_sparse_embedding_service
     from app.services.vector_store import DENSE_VECTOR_NAME, SPARSE_VECTOR_NAME, ensure_collection, upsert_chunks
+
+    chunking_strategy = normalize_chunking_strategy(chunking_strategy)
+    if chunking_strategy not in SUPPORTED_TEXT_CHUNKING_STRATEGIES:
+        accepted = ", ".join(sorted(SUPPORTED_TEXT_CHUNKING_STRATEGIES))
+        raise ValueError(
+            f"A estratégia {chunking_strategy} exige PDF/Docling e não pode ser usada no corpus textual SciQ. "
+            f"Use uma destas: {accepted}."
+        )
 
     if recreate:
         recreate_collection(collection_name)
     else:
+        # See recreate_collection: carregar o modelo aqui preserva a causa real
+        # caso a inicialização do embedding falhe.
+        get_embedding_service()
         try:
             ensure_collection(collection_name)
         except Exception as error:
@@ -69,7 +94,7 @@ def ingest(corpus_path: Path, collection_name: str, batch_size: int, recreate: b
         for row in batch:
             doc_id = str(row["doc_id"])
             text = str(row["text"])
-            drafts = chunk_text(text, page_count=1, chunking_strategy="recursive_text")
+            drafts = chunk_text(text, page_count=1, chunking_strategy=chunking_strategy)
             for draft in drafts:
                 chunk_rows.append(
                     {
@@ -141,12 +166,13 @@ def main() -> None:
     parser.add_argument("--sparse-language", default=DEFAULT_SPARSE_LANGUAGE)
     parser.add_argument("--fastembed-cache-dir", type=Path, default=DEFAULT_FASTEMBED_CACHE_DIR)
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--chunking-strategy", choices=sorted(SUPPORTED_TEXT_CHUNKING_STRATEGIES), default="recursive_text")
     parser.add_argument("--recreate", action="store_true")
     args = parser.parse_args()
 
     configure_benchmark_environment(args.qdrant_url, args.sparse_language, args.fastembed_cache_dir)
     corpus_path = args.data_dir / "processed" / "corpus.jsonl"
-    indexed = ingest(corpus_path, args.collection, args.batch_size, args.recreate)
+    indexed = ingest(corpus_path, args.collection, args.batch_size, args.recreate, args.chunking_strategy)
     print(f"Ingest finalizado: {indexed} documentos na coleção {args.collection}.")
 
 
