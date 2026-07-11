@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "study_id": "sciq-ir",
+  "run_id": "sciq-preliminary-20260707-183922",
+  "status": "preliminary",
+  "canonical_for_current_figures": true,
+  "source": {
+    "summary_path": "experiments/runs/antigos/sciq/20260707-183922/summary_test.json",
+    "summary_sha256": "7a382aa7530ff81defce4a30506dd8895055c3eef8119bf205397355dacaaca8",
+    "retrieval_sha256": {
+      "bm25": "bb5927a3ce76796de443172b319e265fb904267d2a83cf20acae375e1d373d45",
+      "dense": "632686fd6c68e03b9a82e0109c5fe3cbecc5e967d9519897ad3d5ad680da1399",
+      "hybrid": "0f7d21bb4201f0fddc7eb732b735288619ee3ce169ce9fe0ca8f1a05e82aa719"
+    },
+    "figures_sha256": {
+      "first_relevant_rank": "03fb9b6b54700d84d7a513b93df30acc414a75ff825bae371578c10ddf034eec",
+      "metrics_at_10": "4a7f045a8db955b1ddb0471bce3e8cc4886acb781ce9abfab34d1ba37e892a79"
+    }
+  },
+  "dataset": {
+    "name": "allenai/sciq",
+    "revision": null,
+    "filter": "support com pelo menos 8 palavras",
+    "unique_documents": 12135,
+    "queries": 12146,
+    "qrels": 12146,
+    "test_queries": 878,
+    "relevant_documents_per_test_query": 1
+  },
+  "configuration": {
+    "collection": "sciq_baseline",
+    "split": "test",
+    "methods": [
+      "bm25",
+      "dense",
+      "hybrid"
+    ],
+    "top_k": 10,
+    "k_values": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "sparse_language": "english",
+    "chunking_strategy": "recursive_text",
+    "chunk_min_words": 180,
+    "chunk_size_words": 700,
+    "chunk_overlap_words": 100,
+    "dense_model_revision": null,
+    "sparse_model_revision": null,
+    "qdrant_version": null,
+    "fastembed_version": null,
+    "git_commit": null,
+    "hardware": null
+  },
+  "metrics": {
+    "bm25": {
+      "hit_at_1": 0.670843,
+      "hit_at_5": 0.906606,
+      "hit_at_10": 0.952164,
+      "mrr_at_10": 0.774938
+    },
+    "dense": {
+      "hit_at_1": 0.469248,
+      "hit_at_5": 0.764237,
+      "hit_at_10": 0.842825,
+      "mrr_at_10": 0.594547
+    },
+    "hybrid": {
+      "hit_at_1": 0.638952,
+      "hit_at_5": 0.922551,
+      "hit_at_10": 0.955581,
+      "mrr_at_10": 0.760481
+    }
+  },
+  "limitations": [
+    "Rodada anterior ao manifesto completo; revisoes de modelos, versoes e hardware nao foram preservados.",
+    "Ha um unico qrel binario por consulta: Hit@k=Recall@k e MAP@k=MRR@k.",
+    "Usar como resultado preliminar; repetir a rodada final depois de congelar configuracao e ambiente."
+  ]
+}
