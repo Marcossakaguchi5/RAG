@@ -1,0 +1,101 @@
+[
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "bm25",
+    "metric": "mrr",
+    "queries": 50,
+    "mean": 0.719079,
+    "ci95_low": 0.628524,
+    "ci95_high": 0.813333,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "bm25",
+    "metric": "ndcg_at_k",
+    "queries": 50,
+    "mean": 0.775606,
+    "ci95_low": 0.69783,
+    "ci95_high": 0.84947,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "bm25",
+    "metric": "recall_at_k",
+    "queries": 50,
+    "mean": 0.95,
+    "ci95_low": 0.89,
+    "ci95_high": 1.0,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "dense",
+    "metric": "mrr",
+    "queries": 50,
+    "mean": 0.702722,
+    "ci95_low": 0.597056,
+    "ci95_high": 0.804444,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "dense",
+    "metric": "ndcg_at_k",
+    "queries": 50,
+    "mean": 0.762498,
+    "ci95_low": 0.678114,
+    "ci95_high": 0.841804,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "dense",
+    "metric": "recall_at_k",
+    "queries": 50,
+    "mean": 0.96,
+    "ci95_low": 0.9,
+    "ci95_high": 1.0,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "hybrid",
+    "metric": "mrr",
+    "queries": 50,
+    "mean": 0.815,
+    "ci95_low": 0.725,
+    "ci95_high": 0.898333,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "hybrid",
+    "metric": "ndcg_at_k",
+    "queries": 50,
+    "mean": 0.847974,
+    "ci95_low": 0.771961,
+    "ci95_high": 0.91513,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "hybrid",
+    "metric": "recall_at_k",
+    "queries": 50,
+    "mean": 0.97,
+    "ci95_low": 0.92,
+    "ci95_high": 1.0,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42
+  }
+]

@@ -13,6 +13,7 @@ from materialize import (  # noqa: E402
     UnmappedEvidenceError,
     materialize_files,
     materialize_records,
+    normalize_text,
 )
 
 
@@ -63,6 +64,18 @@ class MaterializeTests(unittest.TestCase):
         self.assertEqual(
             report["cases"][0]["evidence"][0]["normalized_quote"],
             "recuperação de informação encontra documentos relevantes",
+        )
+
+    def test_normalization_equates_pdf_hyphen_spacing_artifacts(self):
+        self.assertEqual(
+            normalize_text("pós- alfabetização e ex- ministra"),
+            normalize_text("pós-\nalfabetização e ex-\nministra"),
+        )
+
+    def test_normalization_ignores_attached_pdf_footnote_markers(self):
+        self.assertEqual(
+            normalize_text("Fazer a História é estar representado"),
+            normalize_text("Fazer a História é estar representado9"),
         )
 
     def test_unmatched_evidence_fails_strictly(self):

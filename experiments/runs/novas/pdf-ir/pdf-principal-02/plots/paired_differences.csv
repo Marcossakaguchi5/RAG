@@ -1,0 +1,13 @@
+chunking_strategy,left_method,right_method,metric,queries,mean_difference_left_minus_right,ci95_low,ci95_high,left_wins,ties,right_wins,mcnemar_exact_p,bootstrap_repetitions,bootstrap_seed,mcnemar_holm_p
+recursive_text,bm25,dense,hit_rate_at_k,50,0.0,-0.06,0.06,1,48,1,1.0,2000,42,1.0
+recursive_text,bm25,dense,mrr,50,0.016357,-0.108333,0.136667,16,21,13,,2000,42,
+recursive_text,bm25,dense,ndcg_at_k,50,0.013108,-0.087559,0.108047,17,19,14,,2000,42,
+recursive_text,bm25,dense,recall_at_k,50,-0.01,-0.07,0.05,1,47,2,,2000,42,
+recursive_text,bm25,hybrid,hit_rate_at_k,50,-0.02,-0.06,0.0,0,49,1,1.0,2000,42,1.0
+recursive_text,bm25,hybrid,mrr,50,-0.095921,-0.177032,-0.021365,5,33,12,,2000,42,
+recursive_text,bm25,hybrid,ndcg_at_k,50,-0.072368,-0.138185,-0.013408,5,32,13,,2000,42,
+recursive_text,bm25,hybrid,recall_at_k,50,-0.02,-0.08,0.0,0,49,1,,2000,42,
+recursive_text,dense,hybrid,hit_rate_at_k,50,-0.02,-0.06,0.0,0,49,1,1.0,2000,42,1.0
+recursive_text,dense,hybrid,mrr,50,-0.112278,-0.194111,-0.036333,4,29,17,,2000,42,
+recursive_text,dense,hybrid,ndcg_at_k,50,-0.085476,-0.15177,-0.027123,7,25,18,,2000,42,
+recursive_text,dense,hybrid,recall_at_k,50,-0.01,-0.06,0.03,1,48,1,,2000,42,

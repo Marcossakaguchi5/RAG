@@ -1,0 +1,10 @@
+chunking_strategy,method,metric,queries,mean,ci95_low,ci95_high,bootstrap_repetitions,bootstrap_seed
+recursive_text,bm25,mrr,50,0.719079,0.628524,0.813333,2000,42
+recursive_text,bm25,ndcg_at_k,50,0.775606,0.69783,0.84947,2000,42
+recursive_text,bm25,recall_at_k,50,0.95,0.89,1.0,2000,42
+recursive_text,dense,mrr,50,0.702722,0.597056,0.804444,2000,42
+recursive_text,dense,ndcg_at_k,50,0.762498,0.678114,0.841804,2000,42
+recursive_text,dense,recall_at_k,50,0.96,0.9,1.0,2000,42
+recursive_text,hybrid,mrr,50,0.815,0.725,0.898333,2000,42
+recursive_text,hybrid,ndcg_at_k,50,0.847974,0.771961,0.91513,2000,42
+recursive_text,hybrid,recall_at_k,50,0.97,0.92,1.0,2000,42

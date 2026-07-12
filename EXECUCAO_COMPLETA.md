@@ -57,28 +57,30 @@ Saída: `experiments/runs/novas/sciq/sciq-atualizada-01/`.
 O comando prepara o SciQ, recria uma coleção limpa, indexa o corpus, executa 878
 consultas para os três métodos, calcula métricas, IC95%, McNemar/Holm e gera gráficos.
 
-## 4. Rodar o piloto PDF/RI
+## 4. Rodar o experimento principal PDF/RI
 
-Os 32 casos atuais são `silver/draft`. O reconhecimento explícito abaixo permite uma
-rodada piloto, mas não transforma os casos em ground truth humano.
+Os 50 casos de `freire_50.gold.jsonl` foram revisados e aprovados por anotador
+humano. Por isso, esta rodada não usa `--allow-draft-cases`. O extrator
+`pdftotext` é indicado explicitamente para preservar a correspondência das citações
+com o texto deste PDF.
 
 ```bash
 python experiments/run_experiment.py pdf-ir \
-  --run-id pdf-piloto-01 \
+  --run-id pdf-principal-01 \
   --pdf importancia_ato_ler.pdf \
-  --cases experiments/cases/freire_pilot.draft.jsonl \
-  --allow-draft-cases \
-  --collection freire_recursive_piloto_01 \
+  --cases experiments/cases/freire_50.gold.jsonl \
+  --collection freire_recursive_gold_50_01 \
   --chunking-strategies recursive_text \
   --methods bm25,dense,hybrid \
   --top-k 10 \
+  --source-audit-extractor pdftotext \
   --bootstrap-repetitions 2000
 ```
 
-Saída: `experiments/runs/novas/pdf-ir/pdf-piloto-01/`.
+Saída: `experiments/runs/novas/pdf-ir/pdf-principal-01/`.
 
 O comando audita o PDF, envia e segmenta o documento, exporta os chunks, converte as
-37 evidências em IDs relevantes, executa 32 perguntas × 3 recuperadores e produz
+69 evidências em IDs relevantes, executa 50 perguntas × 3 recuperadores e produz
 métricas e gráficos. Se uma citação não couber integralmente em nenhum chunk, a
 execução para e deixa um relatório de diagnóstico, em vez de calcular métricas com
 qrels incompletos.
@@ -132,30 +134,27 @@ Rodada completa com geração e avaliação RAGAS oficial:
 
 ```bash
 python experiments/run_experiment.py rag \
-  --run-id rag-piloto-01 \
-  --cases experiments/runs/novas/pdf-ir/pdf-piloto-01/recursive_text/ragas-groundtruth.jsonl \
-  --allow-draft-cases \
-  --collection freire_recursive_piloto_01 \
+  --run-id rag-principal-01 \
+  --cases experiments/runs/novas/pdf-ir/pdf-principal-01/recursive_text/ragas-groundtruth.jsonl \
+  --collection freire_recursive_gold_50_01 \
   --methods bm25,dense,hybrid \
   --top-k 5 \
   --evaluate-ragas
 ```
 
-Saída: `experiments/runs/novas/rag/rag-piloto-01/`. São até 96 respostas geradas
-(32 perguntas × 3 métodos). O RAGAS faz chamadas adicionais ao modelo juiz e pode
+Saída: `experiments/runs/novas/rag/rag-principal-01/`. São até 150 respostas geradas
+(50 perguntas × 3 métodos). O RAGAS faz chamadas adicionais ao modelo juiz e pode
 gerar custo no provedor. Para coletar somente as respostas, retire `--evaluate-ragas`.
 
-## 8. Quando considerar uma rodada final
+## 8. Cuidados com a rodada final
 
-Antes de usar o PDF no resultado principal do artigo:
+O arquivo `freire_50.gold.jsonl` já registra os 50 casos como aprovados. Para manter
+a rastreabilidade do resultado principal:
 
-1. revisar pergunta, resposta e evidências sem observar rankings;
-2. preencher `provenance.annotators` e alterar `review_status` para `approved` ou
-   `adjudicated` somente nos casos aceitos;
-3. criar um novo arquivo de casos congelado;
-4. repetir as etapas 4–7 com novos `run_id` e collection, retirando
-   `--allow-draft-cases`;
-5. não ajustar parâmetros após observar o conjunto de teste.
+1. não alterar o arquivo gold depois de iniciar a rodada principal;
+2. registrar no artigo o hash do arquivo de casos presente no `manifest.json`;
+3. usar novos `run_id` e collection se uma nova versão dos casos for necessária;
+4. não ajustar parâmetros após observar os resultados desta coleção.
 
 Se um `run_id` já existir, use `-02`, `-03` etc. O orquestrador não sobrescreve uma
 rodada anterior.
@@ -174,7 +173,7 @@ experiments/runs/
     │   ├── results/*.{json,csv}
     │   ├── plots/*.{svg,csv,html}
     │   └── statistics/*.{json,csv}
-    ├── pdf-ir/pdf-piloto-01/
+    ├── pdf-ir/pdf-principal-01/
     │   ├── manifest.json
     │   ├── source-audit.json
     │   ├── recursive_text/
@@ -184,7 +183,7 @@ experiments/runs/
     │   │   ├── matching-report.json
     │   │   └── retrieval/{results.jsonl,metrics.csv,summary.json}
     │   └── plots/*.{json,csv,svg,html}
-    └── rag/rag-piloto-01/
+    └── rag/rag-principal-01/
         ├── manifest.json
         └── {bm25,dense,hybrid}/
             ├── results.jsonl

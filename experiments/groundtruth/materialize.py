@@ -53,6 +53,15 @@ def normalize_text(text: str) -> str:
 
     normalized = unicodedata.normalize("NFKC", text)
     normalized = re.sub(r"(?<=\w)-[ \t]*\r?\n[ \t]*(?=\w)", "", normalized)
+    # PDF extractors disagree about whether a hyphen at a visual line break is
+    # preserved, separated from the next word, or removed altogether.  Treat
+    # the remaining intra-word forms equivalently so that a verbatim quote such
+    # as ``pós- alfabetização`` can match extracted ``pós-\nalfabetização``.
+    normalized = re.sub(r"(?<=\w)-[ \t]*(?=\w)", "", normalized)
+    # Poppler can preserve a superscript footnote marker directly after the
+    # preceding word (for example, ``representado9``).  It is not textual
+    # evidence and should not prevent an otherwise verbatim quote from mapping.
+    normalized = re.sub(r"(?<=[^\W\d_])\d+\b", "", normalized)
     normalized = normalized.casefold()
     normalized = "".join(char if char.isalnum() else " " for char in normalized)
     return " ".join(normalized.split())

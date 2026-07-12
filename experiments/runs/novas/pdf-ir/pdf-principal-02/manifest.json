@@ -1,0 +1,215 @@
+{
+  "artifacts_sha256": {
+    "plots/metrics_with_ci.csv": "4aa3be42598ab6fce040d330a615a3f5b477bf4f1023fe5be254b8eee7d7aadd",
+    "plots/metrics_with_ci.json": "e79e0dd01fbea6e3990f1ddc53c92e9992296d9f418010e1720fbd3d25ac1d3c",
+    "plots/metrics_with_ci.svg": "9f63447a4107fb3be01ddbcc66877dfc8c2c61bd17adc7b723ff487ce6005f97",
+    "plots/paired_chunking_differences.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "plots/paired_differences.csv": "2a5b6a7824a53237a116bdc80e167dbe1c53dfd82ae705207f6c23aa7e51c47c",
+    "plots/paired_differences.json": "c9db09292ce33b3e36809f2990915a13ebba087e61ef755d6826167eb0fe6455",
+    "plots/report.html": "6f06d4e8b194588a393d92d9bc7ae29bea26ce8e22667a6359a022e0f2df3b25",
+    "recursive_text/chunks.jsonl": "f696e8a6d5410a0dfdb385b19eea7880aa7638607f72219b3ad10100ea347ba4",
+    "recursive_text/ingest-groundtruth.jsonl": "465cdfcc45e6b75a4f322e20c23632bbadcdb8c782335d8358f46a22334ce9e6",
+    "recursive_text/matching-report.json": "a6660d1536633cecdcdd0084e1b57e31069249a443333eb7864c40286e4b9983",
+    "recursive_text/ragas-groundtruth.jsonl": "83b07a8a2953c85a9722bc2d73c45f0a6acdd8ae77b60012efb2a09ef1912dbe",
+    "recursive_text/retrieval/metrics.csv": "c3c3e5c4daaac51541b17b86b02cc371c9ff693478b607cf5cfafc85b8ba93c7",
+    "recursive_text/retrieval/results.jsonl": "414241ee94921435f9fb5b9baf45c3b6c33acd94c07ec1932badbdd3c796abb5",
+    "recursive_text/retrieval/summary.json": "82514b0b4bdf45cc51bc34884218c48a65557f744306338018baadfe0d99efbc",
+    "source-audit.json": "1a867b7b3826825eda439dfa0c0cd74d3388c26d1c4dfcbc47b4cfc86208a3c4"
+  },
+  "conditions": [
+    {
+      "collection": "freire_recursive_gold_50_001",
+      "directory": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/pdf-ir/pdf-principal-02/recursive_text",
+      "ingestion": {
+        "action": "uploaded",
+        "documents": [
+          {
+            "chunking_strategy": "recursive_text",
+            "chunks_count": 35,
+            "collection_name": "freire_recursive_gold_50_001",
+            "created_at": "2026-07-12T00:59:16",
+            "id": "f6bc8d36-4d0c-4c24-85ab-6c81e49ac884",
+            "original_name": "importancia_ato_ler.pdf",
+            "page_count": 49,
+            "size_bytes": 361870
+          }
+        ],
+        "errors": []
+      },
+      "matching_report": {
+        "case_count": 50,
+        "chunk_count": 35,
+        "evidence_count": 69,
+        "mapped_evidence_count": 69,
+        "unmapped_evidence_count": 0
+      },
+      "retrieval_summary": {
+        "base_url": "http://localhost:8010",
+        "collection_default": "freire_recursive_gold_50_001",
+        "error_rows": 0,
+        "methods": {
+          "bm25": {
+            "latency_ms": {
+              "median": 215.82,
+              "p95": 236.59
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.96,
+              "map": 0.7144,
+              "mrr": 0.7191,
+              "ndcg_at_k": 0.7756,
+              "precision_at_k": 0.108,
+              "recall_at_k": 0.95
+            },
+            "ok_cases": 50
+          },
+          "dense": {
+            "latency_ms": {
+              "median": 216.763,
+              "p95": 246.968
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.96,
+              "map": 0.6967,
+              "mrr": 0.7027,
+              "ndcg_at_k": 0.7625,
+              "precision_at_k": 0.11,
+              "recall_at_k": 0.96
+            },
+            "ok_cases": 50
+          },
+          "hybrid": {
+            "latency_ms": {
+              "median": 215.745,
+              "p95": 249.442
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.98,
+              "map": 0.8033,
+              "mrr": 0.815,
+              "ndcg_at_k": 0.848,
+              "precision_at_k": 0.11,
+              "recall_at_k": 0.97
+            },
+            "ok_cases": 50
+          }
+        },
+        "methods_default": [
+          "bm25",
+          "dense",
+          "hybrid"
+        ],
+        "ok_rows": 150,
+        "run_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/pdf-ir/pdf-principal-02/recursive_text/retrieval",
+        "top_k_default": 10,
+        "total_rows": 150
+      },
+      "strategy": "recursive_text"
+    }
+  ],
+  "environment": {
+    "executable": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/.venv-academic/bin/python",
+    "packages": {
+      "datasets": "5.0.0",
+      "docling": "2.95.0",
+      "fastembed": "0.6.1",
+      "numpy": "2.2.5",
+      "qdrant-client": "1.13.3",
+      "ragas": "0.4.3",
+      "sentence-transformers": "4.1.0",
+      "torch": "2.6.0+cpu"
+    },
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+  },
+  "finished_at": "2026-07-12T00:59:58.464762+00:00",
+  "git": {
+    "branch": "production",
+    "changed_paths": [
+      "EXECUCAO_COMPLETA.md",
+      "experiments/groundtruth/materialize.py",
+      "experiments/groundtruth/test_materialize.py",
+      "experiments/runs/novas/sciq/sciq-atualizada-01/manifest.json",
+      "ingest/api/Dockerfile",
+      "ingest/api/app/services/pdf_processor.py",
+      "experiments/cases/freire_50.gold.jsonl"
+    ],
+    "commit": "df69e9b7f0f986024b4a9d008690c455ba58b548",
+    "dirty": true
+  },
+  "ingest_configuration": {
+    "app_version": "0.1.0",
+    "chunking_default": "recursive_text",
+    "chunking_parameters": {
+      "chunk_min_words": 180,
+      "chunk_overlap_tokens": 100,
+      "chunk_overlap_words": 100,
+      "chunk_size_tokens": 1000,
+      "chunk_size_words": 700,
+      "parent_child_overlap_words": 60,
+      "parent_child_size_words": 320
+    },
+    "docling": {
+      "enabled": true,
+      "ocr_enabled": true,
+      "ocr_languages": "pt,en"
+    },
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_model_revision": null,
+    "retrieval": {
+      "hybrid_candidate_cap": 200,
+      "hybrid_candidate_multiplier": 4,
+      "hybrid_fusion": "rrf",
+      "methods": [
+        "bm25",
+        "dense",
+        "hybrid"
+      ]
+    },
+    "sparse_language": "portuguese",
+    "sparse_model": "Qdrant/bm25"
+  },
+  "parameters": {
+    "allow_draft_cases": false,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42,
+    "case_review_statuses": {
+      "approved": 50
+    },
+    "cases": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/cases/freire_50.gold.jsonl",
+    "cases_sha256": "fcc95e0bcc2352ab53cbd821871897354768b337027e9845e1bb60129e186732",
+    "chunking_strategies": [
+      "recursive_text"
+    ],
+    "ingest_url": "http://localhost:8010",
+    "methods": [
+      "bm25",
+      "dense",
+      "hybrid"
+    ],
+    "min_coverage": 1.0,
+    "pdfs": [
+      {
+        "path": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/importancia_ato_ler.pdf",
+        "sha256": "3027738c53e12338112167b618f449ff2642b39ff8c4e55b63cc6276cd2e201d"
+      }
+    ],
+    "plot_results": true,
+    "qdrant_url": "http://localhost:6335",
+    "reuse_collection": false,
+    "source_audit_extractor": "pdftotext",
+    "top_k": 10
+  },
+  "run_id": "pdf-principal-02",
+  "schema_version": 1,
+  "source_audit": {
+    "case_count": 50,
+    "evidence_count": 69,
+    "failed_evidence_count": 0,
+    "matched_evidence_count": 69,
+    "multiple_match_warnings": 0
+  },
+  "started_at": "2026-07-12T00:57:15.481947+00:00",
+  "status": "complete",
+  "study": "pdf-ir"
+}

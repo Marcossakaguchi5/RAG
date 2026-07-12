@@ -1,4 +1,27 @@
 {
+  "artifacts_sha256": {
+    "plots/first_relevant_rank.svg": "19aaa30776cf8a361298562d110fc43c0ccfd3578d9c00fce6831007c1cad0d3",
+    "plots/latency_by_method.svg": "27d79a6e7a80e3f50af0f6a96a5d4f88bd79d85a5a45c3ba4bd7d16476cc7acf",
+    "plots/metric_curves.svg": "605f1afe35c9b3dc183e950fb5fe7d180c5c67a5664243040ca4109fd3f306ba",
+    "plots/metrics_at_10.svg": "341f36a5fa3a9b9f905d8a614a181d1ddfc7d24d4e6c67d82f86050bd9b3b49f",
+    "plots/metrics_consolidated.csv": "20606bfca94d05c31a3f92443c917c0898e005ef8385f641de8386fd6d537c42",
+    "plots/report.html": "d969b8ed110f41fabdd37c65530c75a28f4cfbf17f6afbf280cf79cb9d13b564",
+    "results/bm25_test_metrics.csv": "3e0e43138f8f63a2e0d19f905e6e6fb051ff7ee0cc24a517aab89e423dcc3df4",
+    "results/bm25_test_metrics.json": "20eda190729ce74d0556e32e7f0a86bc682c6dedb42a1c06ceebbac95e211b57",
+    "results/dense_test_metrics.csv": "ada73abb786b8f6e3fef98e9e9abc2c93801b7cada56007df7ad50387d319f9f",
+    "results/dense_test_metrics.json": "543341c5216e965e29be9f6d8e2bec137ecd5a5692f6e904dbcefe0c092fae62",
+    "results/hybrid_test_metrics.csv": "6498c7ac4711f8ed8ca628d47f953a1755a5483b0378e3dfc3a553c02c3faa3d",
+    "results/hybrid_test_metrics.json": "417132da5257d0496481dcffd75aa75e97db48649f5460a2dee0027a4958de0f",
+    "retrieval/bm25_test.jsonl": "1d073e137f393078ffda6418d0517bc1321ae6e653ed547997943c4fcf6e7710",
+    "retrieval/dense_test.jsonl": "be4e19bbfd9864baf6eb432647eb832a5c1e361b27c50b950b7b6b144da7abfb",
+    "retrieval/hybrid_test.jsonl": "94426e359b62eba7a92d87e29d5c3a0ca02c104b72cd82b48f194bbd585c0327",
+    "statistics/metrics_with_ci.csv": "87a907d328ec2c810c58c90873e444321f19822a320e4c63f627e8df037d7e71",
+    "statistics/metrics_with_ci.json": "873fca9c701a0d99c92b93badd10267d9cb2eeefbc6ccba076ccc44a8f34e121",
+    "statistics/paired_differences.csv": "dd0095fd53c09c8b2dd1ac5bc47e04d08063cba86bb49dbefa5ebe57729f22e7",
+    "statistics/paired_differences.json": "fc11cb4acc79cc1775ff3b419fd582a130c14d03e7dc4d1f9e50a9f0bb2858eb",
+    "statistics/summary.json": "fa2c80b6d56957b9f1a237f229f0e5fe2fa6318fb879ad60f3c9137bc034a13f",
+    "summary_test.json": "609fb6eed16ab9e505989a524bb0e5808086a04f61aa76e9c88c36f0c8542dbe"
+  },
   "environment": {
     "executable": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/.venv-academic/bin/python",
     "packages": {
@@ -14,6 +37,7 @@
     "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
     "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
   },
+  "finished_at": "2026-07-11T23:19:01.387374+00:00",
   "git": {
     "branch": "production",
     "changed_paths": [
@@ -105,9 +129,209 @@
     "statistics": true,
     "top_k": 10
   },
+  "processed_inputs_sha256": {
+    "corpus.jsonl": "d8db6f017eef1bb3d701e4865815648f0f40fccf0b9f601daee3b01edb3d4456",
+    "qrels.jsonl": "89fa7f1110fe03be3faf561d8b87423f7ca699c5118a5e979de4110d9a31e803",
+    "queries.jsonl": "0220670b8dc2cbc50055f20c49b721481cfd7159206da2a804585abdfbf0a825"
+  },
   "run_id": "sciq-atualizada-01",
   "schema_version": 1,
   "started_at": "2026-07-11T19:53:35.020243+00:00",
-  "status": "running",
-  "study": "sciq"
+  "status": "complete",
+  "study": "sciq",
+  "summary": {
+    "chunking_strategy": "recursive_text",
+    "collection": "sciq-atualizada-01",
+    "dataset_revision_requested": "2c94ad3e1aafab77146f384e23536f97a4849815",
+    "elapsed_seconds": 12200.92,
+    "fastembed_cache_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/ingest/api/benchmarks/sciq/data/model_cache/fastembed",
+    "k_values": [
+      1,
+      3,
+      5,
+      10
+    ],
+    "limit_queries": null,
+    "methods": [
+      "bm25",
+      "dense",
+      "hybrid"
+    ],
+    "qdrant_url": "http://localhost:6335",
+    "run_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01",
+    "sparse_language": "english",
+    "split": "test",
+    "steps": {
+      "evaluation": {
+        "bm25": {
+          "csv": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/bm25_test_metrics.csv",
+          "json": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/bm25_test_metrics.json",
+          "metrics": {
+            "@1": {
+              "hit_rate": 0.670843,
+              "map": 0.670843,
+              "mrr": 0.670843,
+              "ndcg": 0.670843,
+              "precision": 0.670843,
+              "recall": 0.670843
+            },
+            "@10": {
+              "hit_rate": 0.952164,
+              "map": 0.7749,
+              "mrr": 0.7749,
+              "ndcg": 0.818541,
+              "precision": 0.095216,
+              "recall": 0.952164
+            },
+            "@3": {
+              "hit_rate": 0.870159,
+              "map": 0.760251,
+              "mrr": 0.760251,
+              "ndcg": 0.788545,
+              "precision": 0.290053,
+              "recall": 0.870159
+            },
+            "@5": {
+              "hit_rate": 0.905467,
+              "map": 0.76828,
+              "mrr": 0.76828,
+              "ndcg": 0.803052,
+              "precision": 0.181093,
+              "recall": 0.905467
+            }
+          }
+        },
+        "dense": {
+          "csv": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/dense_test_metrics.csv",
+          "json": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/dense_test_metrics.json",
+          "metrics": {
+            "@1": {
+              "hit_rate": 0.6082,
+              "map": 0.6082,
+              "mrr": 0.6082,
+              "ndcg": 0.6082,
+              "precision": 0.6082,
+              "recall": 0.6082
+            },
+            "@10": {
+              "hit_rate": 0.922551,
+              "map": 0.719478,
+              "mrr": 0.719478,
+              "ndcg": 0.769259,
+              "precision": 0.092255,
+              "recall": 0.922551
+            },
+            "@3": {
+              "hit_rate": 0.812073,
+              "map": 0.698178,
+              "mrr": 0.698178,
+              "ndcg": 0.727435,
+              "precision": 0.270691,
+              "recall": 0.812073
+            },
+            "@5": {
+              "hit_rate": 0.875854,
+              "map": 0.713041,
+              "mrr": 0.713041,
+              "ndcg": 0.753956,
+              "precision": 0.175171,
+              "recall": 0.875854
+            }
+          }
+        },
+        "hybrid": {
+          "csv": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/hybrid_test_metrics.csv",
+          "json": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/results/hybrid_test_metrics.json",
+          "metrics": {
+            "@1": {
+              "hit_rate": 0.694761,
+              "map": 0.694761,
+              "mrr": 0.694761,
+              "ndcg": 0.694761,
+              "precision": 0.694761,
+              "recall": 0.694761
+            },
+            "@10": {
+              "hit_rate": 0.968109,
+              "map": 0.796545,
+              "mrr": 0.796545,
+              "ndcg": 0.838916,
+              "precision": 0.096811,
+              "recall": 0.968109
+            },
+            "@3": {
+              "hit_rate": 0.881549,
+              "map": 0.779613,
+              "mrr": 0.779613,
+              "ndcg": 0.805901,
+              "precision": 0.29385,
+              "recall": 0.881549
+            },
+            "@5": {
+              "hit_rate": 0.930524,
+              "map": 0.791059,
+              "mrr": 0.791059,
+              "ndcg": 0.826294,
+              "precision": 0.186105,
+              "recall": 0.930524
+            }
+          }
+        }
+      },
+      "ingest": {
+        "indexed_documents": 12135
+      },
+      "plots": {
+        "csv": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/plots/metrics_consolidated.csv",
+        "images": [
+          "metrics_at_10.svg",
+          "metric_curves.svg",
+          "latency_by_method.svg",
+          "first_relevant_rank.svg"
+        ],
+        "output_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/plots",
+        "report": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01/plots/report.html",
+        "source_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/sciq/sciq-atualizada-01"
+      },
+      "prepare": {
+        "dataset": "allenai/sciq",
+        "dataset_fingerprints": {
+          "test": "1c77506302f519b8",
+          "train": "4569e589b157b7a9",
+          "validation": "fdcb9b0db012fcb6"
+        },
+        "dataset_revision_requested": "2c94ad3e1aafab77146f384e23536f97a4849815",
+        "dataset_version": "0.0.0",
+        "documents": 12135,
+        "min_support_words": 8,
+        "qrels": 12146,
+        "queries": 12146,
+        "seed": 42
+      },
+      "retrieval": {
+        "bm25": {
+          "elapsed_seconds": 3.158,
+          "method": "bm25",
+          "queries": 878,
+          "rows": 8780,
+          "split": "test"
+        },
+        "dense": {
+          "elapsed_seconds": 147.218,
+          "method": "dense",
+          "queries": 878,
+          "rows": 8780,
+          "split": "test"
+        },
+        "hybrid": {
+          "elapsed_seconds": 151.701,
+          "method": "hybrid",
+          "queries": 878,
+          "rows": 8780,
+          "split": "test"
+        }
+      }
+    },
+    "top_k": 10
+  }
 }

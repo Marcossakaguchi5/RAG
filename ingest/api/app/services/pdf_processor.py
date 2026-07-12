@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import re
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -154,6 +155,34 @@ def _extract_with_docling(content: bytes, use_ocr: bool = False) -> tuple[str, A
             raise ValueError(message) from error
 
     return text.strip(), document
+
+
+def _extract_with_pdftotext(content: bytes) -> str:
+    """Extract PDF text in the reading order used by the text baselines."""
+    with tempfile.TemporaryDirectory() as temporary_dir:
+        pdf_path = Path(temporary_dir) / "document.pdf"
+        pdf_path.write_bytes(content)
+        try:
+            completed = subprocess.run(
+                ["pdftotext", "-raw", str(pdf_path), "-"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError as error:
+            raise ValueError(
+                "pdftotext não está instalado na imagem da API de ingestão."
+            ) from error
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or "").strip()
+            raise ValueError(
+                "pdftotext não conseguiu extrair o conteúdo do PDF"
+                + (f": {detail}" if detail else ".")
+            ) from error
+    text = completed.stdout.strip()
+    if not text:
+        raise ValueError("O PDF não possui texto extraível pelo pdftotext.")
+    return text
 
 
 def _extract_content(content: bytes) -> ExtractedContent:
@@ -521,9 +550,12 @@ def chunk_text(
 
 def extract_pdf_chunks(content: bytes, chunking_strategy: str | None = None) -> tuple[int, list[ChunkDraft]]:
     strategy = normalize_chunking_strategy(chunking_strategy)
-    extracted = _extract_content(content)
     if strategy in {"fixed_token", "recursive_text"}:
-        return extracted.page_count, chunk_text(extracted.text, extracted.page_count, strategy)
+        # Docling's Markdown export can reorder columns in born-digital PDFs.
+        # The baseline needs a stable linear reading order for its qrels.
+        page_count = _pdf_page_count(content)
+        return page_count, chunk_text(_extract_with_pdftotext(content), page_count, strategy)
+    extracted = _extract_content(content)
     if extracted.dl_doc is None:
         raise ValueError(f"A estratégia {strategy} exige Docling habilitado para preservar a estrutura do documento.")
     if strategy == "docling_hybrid_parent_child":
