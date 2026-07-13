@@ -1,9 +1,11 @@
 # Comandos de benchmarks
 
-Este arquivo concentra os comandos dos tres estudos, que compartilham o mesmo nucleo
+Este arquivo concentra os comandos dos quatro estudos, que compartilham o mesmo nucleo
 de recuperacao:
 
 - SciQ: baseline automatizada de recuperacao no `ingest`.
+- QASPER: recuperação de evidências textuais em artigos acadêmicos longos, com
+  múltiplos parágrafos relevantes por pergunta.
 - PDF: perguntas, respostas e evidencias canonicas materializadas para os chunks.
 - RAG: extensao exploratoria com as mesmas perguntas e respostas do estudo PDF.
 
@@ -12,6 +14,11 @@ estiver congelado. O desenho completo, as RQs e os controles estatisticos estao 
 [PLANO_EXPERIMENTAL.md](PLANO_EXPERIMENTAL.md).
 O roteiro recomendado, já com ordem, serviços, IDs e saídas, está em
 [EXECUCAO_COMPLETA.md](EXECUCAO_COMPLETA.md).
+
+O QASPER é executado diretamente em
+[`ingest/api/benchmarks/qasper/README.md`](ingest/api/benchmarks/qasper/README.md).
+Seu primeiro recorte é somente de perguntas respondíveis com evidência textual;
+tabelas, figuras e perguntas não respondíveis pertencem a experimentos separados.
 
 Para criar uma rodada nova sem sobrescrever a baseline existente, prefira o
 orquestrador:

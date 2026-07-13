@@ -1,0 +1,2 @@
+# As dependências de recuperação permanecem fixadas em ../../requirements.txt.
+datasets==5.0.0
