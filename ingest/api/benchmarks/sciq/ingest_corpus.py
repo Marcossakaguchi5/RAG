@@ -15,8 +15,9 @@ from common import (
 )
 
 
-def point_id_for_chunk(doc_id: str, ordinal: int) -> str:
-    return str(uuid5(NAMESPACE_URL, f"sciq:{doc_id}:chunk:{ordinal}"))
+def point_id_for_chunk(doc_id: str, ordinal: int, dataset_name: str = "sciq") -> str:
+    """Return a deterministic Qdrant point ID scoped to the source dataset."""
+    return str(uuid5(NAMESPACE_URL, f"{dataset_name}:{doc_id}:chunk:{ordinal}"))
 
 
 def chunk_id_for_doc(doc_id: str, ordinal: int) -> str:
@@ -55,6 +56,8 @@ def ingest(
     batch_size: int,
     recreate: bool,
     chunking_strategy: str = "recursive_text",
+    dataset_name: str = "sciq",
+    source_field: str = "support",
 ) -> int:
     from qdrant_client import models
 
@@ -127,7 +130,7 @@ def ingest(
                         "schema_version": 2,
                         "source_type": "dataset",
                         "chunk_id": chunk_id,
-                        "point_id": point_id_for_chunk(doc_id, int(row["ordinal"])),
+                        "point_id": point_id_for_chunk(doc_id, int(row["ordinal"]), dataset_name),
                         "collection_name": collection_name,
                         "document_id": doc_id,
                         "document_name": doc_id,
@@ -146,8 +149,8 @@ def ingest(
                         "char_count": len(text),
                         "chunk_char_count": len(text),
                         "chunking_strategy": str(row["chunking_strategy"]),
-                        "dataset": "sciq",
-                        "source_field": "support",
+                        "dataset": dataset_name,
+                        "source_field": source_field,
                     },
                 )
             )

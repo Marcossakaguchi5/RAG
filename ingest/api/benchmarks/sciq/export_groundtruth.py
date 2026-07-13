@@ -210,7 +210,12 @@ def build_groundtruth(
             "relevant_chunk_ids": relevant_chunk_ids,
             "relevant_doc_ids": relevant_doc_ids,
             "split": split,
-            "correct_answer": query.get("correct_answer"),
+            # QASPER has one or more textual reference answers instead of SciQ's
+            # single ``correct_answer`` field.  Keep the runner schema stable
+            # while preserving the canonical first reference for consumers that
+            # only understand ``correct_answer``.
+            "correct_answer": query.get("correct_answer", query.get("reference_answer")),
+            "reference_answers": query.get("reference_answers", []),
             "options": query.get("options", []),
         }
         if top_k is not None:
