@@ -7,7 +7,7 @@ Modulo de perguntas sobre as collections criadas no `apps/ingest/`.
 Deixe o `ingest` rodando primeiro, depois:
 
 ```bash
-cd chat
+cd apps/chat
 docker compose up --build
 ```
 

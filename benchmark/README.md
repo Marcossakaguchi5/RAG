@@ -33,9 +33,9 @@ recuperador com chunking fixo. O efeito do chunking é uma ablação separada.
 - Esquema mestre e materialização: [groundtruth/README.md](groundtruth/README.md).
 - RI em PDFs: `apps/ingest/api/benchmarks/groundtruth/run_groundtruth.py`.
 - Coleta e RAGAS offline: `apps/chat/api/benchmarks/ragas/`.
-- Comandos completos: [BENCHMARKS.md](../BENCHMARKS.md).
+- Comandos completos: [BENCHMARKS.md](../docs/BENCHMARKS.md).
 - Decisões metodológicas e critérios de saída:
-  [PLANO_EXPERIMENTAL.md](../PLANO_EXPERIMENTAL.md).
+  [PLANO_EXPERIMENTAL.md](../docs/PLANO_EXPERIMENTAL.md).
 
 ## Estado atual
 

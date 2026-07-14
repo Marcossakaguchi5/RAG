@@ -1,6 +1,6 @@
 # RAG modular — ingestão
 
-Este repositório separa deliberadamente `apps/ingest/` do futuro `apps/chat/`. O módulo atual recebe PDFs, extrai o conteúdo com Docling, divide o documento em chunks dinâmicos, armazena o original no MinIO, os metadados/chunks no MySQL e vetores dense+sparse no Qdrant.
+Este repositório separa deliberadamente `apps/ingest/` do `apps/chat/`. O módulo de ingestão recebe PDFs, extrai o conteúdo com Docling, divide o documento em chunks dinâmicos, armazena o original no MinIO, os metadados/chunks no MySQL e vetores dense+sparse no Qdrant.
 
 ## Subir localmente
 
