@@ -2,8 +2,8 @@
 
 Projeto de Recuperação Aumentada por Geração (RAG) dividido em dois módulos independentes:
 
-- `ingest/`: recebe PDFs, extrai conteúdo com Docling, cria chunks dinâmicos, gera índices dense e sparse, e disponibiliza busca semântica/BM25/híbrida.
-- `chat/`: consome as bases criadas pelo `ingest`, recupera contexto, executa o fluxo RAG com LangGraph, opcionalmente aplica reranker, gera respostas com uma API compatível com OpenAI e calcula métricas RAGAS.
+- `apps/ingest/`: recebe PDFs, extrai conteúdo com Docling, cria chunks dinâmicos, gera índices dense e sparse, e disponibiliza busca semântica/BM25/híbrida.
+- `apps/chat/`: consome as bases criadas pelo ingest, recupera contexto, executa o fluxo RAG com LangGraph, opcionalmente aplica reranker, gera respostas com uma API compatível com OpenAI e calcula métricas RAGAS.
 
 ## Arquitetura
 
@@ -11,7 +11,7 @@ Projeto de Recuperação Aumentada por Geração (RAG) dividido em dois módulos
 PDFs
   |
   v
-ingest/
+apps/ingest/
   FastAPI + MySQL + MinIO + Qdrant
   - extração de PDF com Docling
   - chunks dinâmicos por blocos/parágrafos
@@ -20,7 +20,7 @@ ingest/
   - vetores dense/sparse no Qdrant
   |
   v
-chat/
+apps/chat/
   FastAPI + interface web
   - consulta collections do ingest
   - orquestra o RAG com LangGraph
@@ -33,17 +33,12 @@ chat/
 
 ```text
 .
-|-- ingest/                 # Pipeline de ingestão, indexação e recuperação
-|   |-- api/                # API FastAPI
-|   |-- web/                # Interface web estática
-|   |-- docker-compose.yml
-|   `-- README.md
-|-- chat/                   # Interface e API de perguntas sobre as collections
-|   |-- api/                # API FastAPI do chat
-|   |-- web/                # Interface web estática
-|   |-- docker-compose.yml
-|   `-- README.md
-|-- experiments/            # Protocolo acadêmico, ground truth e manifests
+|-- apps/
+|   |-- ingest/             # Pipeline de ingestão, indexação e recuperação
+|   `-- chat/               # Interface e API de perguntas sobre as collections
+|-- benchmark/              # Pipeline acadêmica, casos, fontes e rodadas
+|-- docs/                   # Guias metodológicos e operacionais
+|-- research/               # Artigo e figuras
 `-- LICENSE
 ```
 
@@ -59,7 +54,7 @@ chat/
 ### 1. Ingestão
 
 ```bash
-cd ingest
+cd apps/ingest
 cp .env.example .env
 docker compose up --build
 ```
@@ -91,7 +86,7 @@ Serviços principais:
 | Interface do chat | http://localhost:8081 |
 | API do chat | http://localhost:8011/docs |
 
-O `chat` usa `INGEST_API_URL` para chamar a API de ingestão e `INGEST_APP_PASSWORD` para autenticar nessa API. Para geração de resposta, configure no `chat/.env`:
+O chat usa `INGEST_API_URL` para chamar a API de ingestão e `INGEST_APP_PASSWORD` para autenticar nessa API. Para geração de resposta, configure no `apps/chat/.env`:
 
 ```text
 CHAT_APP_PASSWORD=
@@ -126,34 +121,38 @@ O projeto inclui dois caminhos de avaliação:
 - No `ingest`, métricas clássicas de recuperação como Precision@K, Recall@K, MAP, NDCG@K e MRR, desde que exista ground truth de chunks relevantes.
 - No `chat`, relatório RAGAS oficial com Faithfulness, Answer relevancy, Context precision, Context recall e Factual correctness.
 
-Há também um benchmark SciQ em `ingest/api/benchmarks/sciq/`. O desenho acadêmico
+Há também um benchmark SciQ em `apps/ingest/api/benchmarks/sciq/`. O desenho acadêmico
 consolidado, com RI como estudo principal e RAG como extensão, está em
-[PLANO_EXPERIMENTAL.md](PLANO_EXPERIMENTAL.md). O ground truth canônico de PDFs e o
+[docs/PLANO_EXPERIMENTAL.md](docs/PLANO_EXPERIMENTAL.md). O ground truth canônico de PDFs e o
 materializador de evidências para chunks ficam em
-[experiments/groundtruth/](experiments/groundtruth/README.md).
+[benchmark/groundtruth/](benchmark/groundtruth/README.md).
 
 Para entender o desenho dos estudos, as métricas, os cálculos, a estatística e os
-artefatos gerados em `experiments/`, consulte o
-[GUIA_EXPERIMENTACAO.md](GUIA_EXPERIMENTACAO.md).
+artefatos gerados em `benchmark/`, consulte o
+[docs/GUIA_EXPERIMENTACAO.md](docs/GUIA_EXPERIMENTACAO.md).
 
 O roteiro sequencial para executar SciQ, PDF/RI, ablação de chunking e RAG/RAGAS está
-em [EXECUCAO_COMPLETA.md](EXECUCAO_COMPLETA.md).
+em [docs/EXECUCAO_COMPLETA.md](docs/EXECUCAO_COMPLETA.md).
 
-Os comandos consolidados para SciQ, ground truth manual do `ingest` e ground truth RAGAS do `chat` estão em [BENCHMARKS.md](BENCHMARKS.md).
+Os comandos consolidados para SciQ, ground truth manual do ingest e ground truth RAGAS do chat estão em [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
+Os índices das áreas do repositório estão em [apps/](apps/README.md),
+[benchmark/](benchmark/README.md), [docs/](docs/README.md) e
+[research/](research/README.md).
 
 ## Comandos úteis
 
 Subir o módulo de ingestão:
 
 ```bash
-cd ingest
+cd apps/ingest
 docker compose up --build
 ```
 
 Subir o módulo de chat:
 
 ```bash
-cd chat
+cd apps/chat
 docker compose up --build
 ```
 
@@ -173,5 +172,5 @@ Use `down -v` com cuidado: ele remove dados persistidos em volumes Docker, inclu
 
 ## Documentação dos módulos
 
-- [ingest/README.md](ingest/README.md)
-- [chat/README.md](chat/README.md)
+- [apps/ingest/README.md](apps/ingest/README.md)
+- [apps/chat/README.md](apps/chat/README.md)

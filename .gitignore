@@ -19,11 +19,11 @@ node_modules/
 dist/
 build/
 
-experiments/runs/**
-!experiments/runs/**/
-!experiments/runs/**/README.md
-!experiments/runs/**/manifest.json
-experiments/data/
+benchmark/runs/**
+!benchmark/runs/**/
+!benchmark/runs/**/README.md
+!benchmark/runs/**/manifest.json
+benchmark/data/
 
 .DS_Store
 .idea/
