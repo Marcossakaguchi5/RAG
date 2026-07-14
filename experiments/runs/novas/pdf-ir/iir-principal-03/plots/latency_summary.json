@@ -1,0 +1,26 @@
+[
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "bm25",
+    "queries": 50,
+    "mean_ms": 213.108,
+    "median_ms": 208.134,
+    "p95_ms": 238.995
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "dense",
+    "queries": 50,
+    "mean_ms": 209.506,
+    "median_ms": 206.82,
+    "p95_ms": 223.107
+  },
+  {
+    "chunking_strategy": "recursive_text",
+    "method": "hybrid",
+    "queries": 50,
+    "mean_ms": 213.162,
+    "median_ms": 209.811,
+    "p95_ms": 227.589
+  }
+]

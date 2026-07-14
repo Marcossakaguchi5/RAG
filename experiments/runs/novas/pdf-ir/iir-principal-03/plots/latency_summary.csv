@@ -1,0 +1,4 @@
+chunking_strategy,method,queries,mean_ms,median_ms,p95_ms
+recursive_text,bm25,50,213.108,208.134,238.995
+recursive_text,dense,50,209.506,206.82,223.107
+recursive_text,hybrid,50,213.162,209.811,227.589

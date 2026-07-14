@@ -1,0 +1,61 @@
+{
+  "run_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/pdf-ir/iir-principal-03/recursive_text/retrieval",
+  "base_url": "http://localhost:8010",
+  "collection_default": "iir_recursive_gold_50_03",
+  "methods_default": [
+    "bm25",
+    "dense",
+    "hybrid"
+  ],
+  "top_k_default": 10,
+  "total_rows": 150,
+  "ok_rows": 150,
+  "error_rows": 0,
+  "methods": {
+    "bm25": {
+      "ok_cases": 50,
+      "metric_averages": {
+        "hit_rate_at_k": 0.82,
+        "precision_at_k": 0.114,
+        "recall_at_k": 0.81,
+        "map": 0.5396,
+        "ndcg_at_k": 0.6211,
+        "mrr": 0.5762
+      },
+      "latency_ms": {
+        "median": 208.134,
+        "p95": 238.995
+      }
+    },
+    "dense": {
+      "ok_cases": 50,
+      "metric_averages": {
+        "hit_rate_at_k": 0.98,
+        "precision_at_k": 0.128,
+        "recall_at_k": 0.94,
+        "map": 0.6637,
+        "ndcg_at_k": 0.7452,
+        "mrr": 0.708
+      },
+      "latency_ms": {
+        "median": 206.82,
+        "p95": 223.107
+      }
+    },
+    "hybrid": {
+      "ok_cases": 50,
+      "metric_averages": {
+        "hit_rate_at_k": 0.98,
+        "precision_at_k": 0.132,
+        "recall_at_k": 0.96,
+        "map": 0.6718,
+        "ndcg_at_k": 0.7537,
+        "mrr": 0.7094
+      },
+      "latency_ms": {
+        "median": 209.811,
+        "p95": 227.589
+      }
+    }
+  }
+}

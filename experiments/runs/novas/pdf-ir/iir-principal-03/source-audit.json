@@ -1,0 +1,1658 @@
+{
+  "cases": [
+    {
+      "evidence": [
+        {
+          "declared_page": 38,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            38
+          ],
+          "occurrences": 1,
+          "quote": "Information retrieval (IR) is ﬁnding material (usually documents) of an unstructured nature (usually text) that satisﬁes an information need from within large collections (usually stored on computers).",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-001",
+      "query": "Como o livro define recuperação da informação como área acadêmica?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 42,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            42
+          ],
+          "occurrences": 1,
+          "quote": "An information need is the topic about which the user desires to know more",
+          "status": "ok"
+        },
+        {
+          "declared_page": 42,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            42
+          ],
+          "occurrences": 1,
+          "quote": "A document is relevant if it is one that the user perceives as containing information of value",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-002",
+      "query": "Qual é a diferença entre necessidade de informação, consulta e relevância?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 43,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            43
+          ],
+          "occurrences": 1,
+          "quote": "We keep a dictionary of terms",
+          "status": "ok"
+        },
+        {
+          "declared_page": 43,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            43
+          ],
+          "occurrences": 1,
+          "quote": "for each term, we have a list that records which documents the term occurs in.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-003",
+      "query": "Quais são os dois componentes centrais de um índice invertido?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 49,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            49
+          ],
+          "occurrences": 1,
+          "quote": "if we start by intersecting the two smallest postings lists, then all intermediate results must be no bigger than the smallest postings list",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-004",
+      "query": "Em que ordem as listas de postings devem ser intersectadas em uma consulta conjuntiva?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "If the units get too small, we are likely to miss important passages because terms were distributed over several mini-documents",
+          "status": "ok"
+        },
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "if units are too large we tend to get spurious matches and the relevant information is hard for the user to ﬁnd.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-005",
+      "query": "Por que indexar um livro inteiro como um único documento pode prejudicar a recuperação?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "A token is an instance",
+          "status": "ok"
+        },
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "that are grouped together as a useful semantic unit for processing.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "tokens containing the same character sequence.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 59,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 4,
+          "matched_pages": [
+            59
+          ],
+          "occurrences": 1,
+          "quote": "type that is included in the IR system’s dictionary.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-006",
+      "query": "Como se distinguem token, type e term no processamento de documentos?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 64,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            64
+          ],
+          "occurrences": 1,
+          "quote": "The general trend in IR systems over time has been from standard use of quite large stop lists (200–300 terms) to very small stop lists (7–12 terms) to no stop list whatsoever.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 64,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            64
+          ],
+          "occurrences": 1,
+          "quote": "Web search engines generally do not use stop lists.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-007",
+      "query": "Por que sistemas modernos tendem a usar listas de stop words pequenas ou nenhuma lista?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 69,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            69
+          ],
+          "occurrences": 1,
+          "quote": "a crude heuristic process that chops off the ends of words",
+          "status": "ok"
+        },
+        {
+          "declared_page": 69,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            69
+          ],
+          "occurrences": 1,
+          "quote": "with the use of a vocabulary and morphological analysis of words",
+          "status": "ok"
+        },
+        {
+          "declared_page": 71,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            71
+          ],
+          "occurrences": 1,
+          "quote": "Stemming increases recall while harming precision.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-008",
+      "query": "Qual é a diferença entre stemming e lematização e qual efeito o stemming pode ter nas métricas?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 87,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            87
+          ],
+          "occurrences": 1,
+          "quote": "There is no easy way to ﬁnd minor variants of a query term",
+          "status": "ok"
+        },
+        {
+          "declared_page": 87,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            87
+          ],
+          "occurrences": 1,
+          "quote": "Search trees overcome many of these issues – for instance, they permit us to enumerate all vocabulary terms beginning with automat.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-009",
+      "query": "Quando árvores de busca são mais adequadas que hashing para consultar o dicionário?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 90,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            90
+          ],
+          "occurrences": 1,
+          "quote": "The key is to rotate such a wildcard query so that the * symbol appears at the end of the string – thus the rotated wildcard query becomes n$m*.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 90,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            90
+          ],
+          "occurrences": 1,
+          "quote": "we look up these terms in the standard inverted index to retrieve matching documents.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-010",
+      "query": "Como um índice permuterm processa a consulta curinga m*n?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 95,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            95
+          ],
+          "occurrences": 1,
+          "quote": "minimum number of edit operations required to transform s1 into s2.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 95,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            95
+          ],
+          "occurrences": 1,
+          "quote": "Such isolated-term correction would fail to detect, for instance, that the query ﬂew form Heathrow contains a mis-spelling of the term from",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-011",
+      "query": "O que é distância de edição e por que a correção isolada de termos é insuficiente?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 110,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            110
+          ],
+          "occurrences": 1,
+          "quote": "A difference between BSBI and SPIMI is that SPIMI adds a posting directly to its postings list",
+          "status": "ok"
+        },
+        {
+          "declared_page": 110,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            110
+          ],
+          "occurrences": 1,
+          "quote": "It is faster because there is no sorting required, and it saves memory",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-012",
+      "query": "Qual vantagem o SPIMI apresenta sobre o BSBI durante a construção do índice?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 112,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            112
+          ],
+          "occurrences": 1,
+          "quote": "we divide the work up into chunks that we can easily assign and – in case of failure – reassign.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 112,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            112
+          ],
+          "occurrences": 1,
+          "quote": "A master node directs the process of assigning",
+          "status": "ok"
+        },
+        {
+          "declared_page": 112,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            112
+          ],
+          "occurrences": 1,
+          "quote": "reassigning tasks to individual worker nodes.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-013",
+      "query": "Como o MapReduce torna a indexação distribuída tolerante a falhas?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 125,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            125
+          ],
+          "occurrences": 1,
+          "quote": "Vocabulary size M as a function of collection size T (number of tokens) for Reuters-RCV1.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 125,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            125
+          ],
+          "occurrences": 1,
+          "quote": "Typical values for the parameters k and b are: 30 ≤k ≤100 and b ≈0.5.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 126,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            126
+          ],
+          "occurrences": 1,
+          "quote": "the dictionary size continues to increase with more documents in the collection, rather than a maximum vocabulary size being reached",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-014",
+      "query": "O que a lei de Heaps indica sobre o crescimento do vocabulário de uma coleção?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 126,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            126
+          ],
+          "occurrences": 1,
+          "quote": "the collection frequency cfi of the ith most common term is proportional to 1/i",
+          "status": "ok"
+        },
+        {
+          "declared_page": 126,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            126
+          ],
+          "occurrences": 1,
+          "quote": "the second most frequent term has half as many occurrences, the third most frequent term a third as many occurrences",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-015",
+      "query": "Como a lei de Zipf relaciona frequência e posição de um termo no ranking?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 133,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            133
+          ],
+          "occurrences": 1,
+          "quote": "The key idea is that the gaps between postings are short, requiring a lot less space than 20 bits to store.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 133,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            133
+          ],
+          "occurrences": 1,
+          "quote": "Variable byte (VB) encoding uses an integral number of bytes to encode a gap.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 133,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            133
+          ],
+          "occurrences": 1,
+          "quote": "The last 7 bits of a byte are “payload” and encode part of the gap.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-016",
+      "query": "Por que se codificam gaps entre docIDs e como funciona a codificação variable byte?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 154,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            154
+          ],
+          "occurrences": 1,
+          "quote": "The simplest approach is to assign the weight to be equal to the number of occurrences of term t in document d.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 154,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            154
+          ],
+          "occurrences": 1,
+          "quote": "This weighting scheme is referred to as term frequency",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-017",
+      "query": "O que representa a frequência de termo tf em um documento?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 155,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            155
+          ],
+          "occurrences": 1,
+          "quote": "the number of documents in the collection that contain a term t.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 155,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            155
+          ],
+          "occurrences": 1,
+          "quote": "it is better to use a document-level statistic",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-018",
+      "query": "Por que a frequência documental é usada para reduzir o peso de termos comuns?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 158,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            158
+          ],
+          "occurrences": 1,
+          "quote": "two documents with very similar content can have a signiﬁcant vector difference simply because one is much longer than the other.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 158,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            158
+          ],
+          "occurrences": 1,
+          "quote": "To compensate for the effect of document length, the standard way of quantifying the similarity between two documents d1 and d2 is to compute the cosine similarity",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-019",
+      "query": "Por que a similaridade do cosseno é usada no modelo vetorial?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 175,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            175
+          ],
+          "occurrences": 1,
+          "quote": "precompute, for each term t in the dictionary, the set of the r documents with the highest weights for t",
+          "status": "ok"
+        },
+        {
+          "declared_page": 175,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            175
+          ],
+          "occurrences": 1,
+          "quote": "We now restrict cosine computation to only the documents in A.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-020",
+      "query": "Como champion lists reduzem o custo de calcular os documentos top-K?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 178,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            178
+          ],
+          "occurrences": 1,
+          "quote": "Pick √ N documents at random from the collection. Call these leaders.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 178,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            178
+          ],
+          "occurrences": 1,
+          "quote": "The candidate set A consists of L together with its followers.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-021",
+      "query": "Como cluster pruning aproxima a recuperação top-K sem pontuar a coleção inteira?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 189,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            189
+          ],
+          "occurrences": 1,
+          "quote": "we need a test collection consisting of three things: 1. A document collection 2. A test suite of information needs, expressible as queries 3. A set of relevance judgments",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-022",
+      "query": "Quais elementos formam uma coleção de teste para avaliar recuperação da informação?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 193,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            193
+          ],
+          "occurrences": 1,
+          "quote": "The default balanced F measure equally weights precision and recall",
+          "status": "ok"
+        },
+        {
+          "declared_page": 193,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            193
+          ],
+          "occurrences": 1,
+          "quote": "Values of β < 1 emphasize precision, while values of β > 1 emphasize recall.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-023",
+      "query": "Como o F1 combina precisão e recall e quando outros valores de beta são úteis?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 196,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            196
+          ],
+          "occurrences": 1,
+          "quote": "provides a single-ﬁgure measure of quality across recall levels.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 196,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            196
+          ],
+          "occurrences": 1,
+          "quote": "MAP has been shown to have especially good discrimination and stability.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-024",
+      "query": "Por que Mean Average Precision é adequada para comparar sistemas ranqueados?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 215,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            215
+          ],
+          "occurrences": 1,
+          "quote": "The user issues a (short, simple) query.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 215,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            215
+          ],
+          "occurrences": 1,
+          "quote": "The user marks some returned documents as relevant or nonrelevant.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 215,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            215
+          ],
+          "occurrences": 1,
+          "quote": "The system computes a better representation of the information need based on the user feedback.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-025",
+      "query": "Qual é o fluxo básico de relevance feedback?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 224,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            224
+          ],
+          "occurrences": 1,
+          "quote": "It automates the manual part of relevance feedback, so that the user gets improved retrieval performance without an extended interaction.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 224,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            224
+          ],
+          "occurrences": 1,
+          "quote": "assume that the top k ranked documents are relevant",
+          "status": "ok"
+        },
+        {
+          "declared_page": 224,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            224
+          ],
+          "occurrences": 1,
+          "quote": "there may be query drift",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-026",
+      "query": "O que diferencia pseudo relevance feedback de relevance feedback explícito?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 232,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            232
+          ],
+          "occurrences": 1,
+          "quote": "We call the search over such structured documents structured retrieval.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 232,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            232
+          ],
+          "occurrences": 1,
+          "quote": "we want to be able to run queries that combine textual criteria with structural criteria.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-027",
+      "query": "O que caracteriza a recuperação estruturada em documentos XML?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 258,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            258
+          ],
+          "occurrences": 1,
+          "quote": "rank all documents in decreasing order of P(R = 1|d, q).",
+          "status": "ok"
+        },
+        {
+          "declared_page": 258,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            258
+          ],
+          "occurrences": 1,
+          "quote": "The goal is to return the best possible results as the top k",
+          "status": "ok"
+        },
+        {
+          "declared_page": 258,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            258
+          ],
+          "occurrences": 1,
+          "quote": "documents, for any value of k the user chooses to examine.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-028",
+      "query": "Qual ordenação o Probability Ranking Principle recomenda no caso de perda 1/0?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 259,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            259
+          ],
+          "occurrences": 1,
+          "quote": "documents and queries are both represented as binary term incidence vectors.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 259,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            259
+          ],
+          "occurrences": 1,
+          "quote": "It introduces some simple assumptions, which make estimating the probability function P(R|d, q) practical.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-029",
+      "query": "Quais simplificações definem o Binary Independence Model?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 269,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            269
+          ],
+          "occurrences": 1,
+          "quote": "The BIM was originally designed for short catalog records and abstracts of fairly consistent length",
+          "status": "ok"
+        },
+        {
+          "declared_page": 269,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            269
+          ],
+          "occurrences": 1,
+          "quote": "a model should pay attention to term frequency and document length",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-030",
+      "query": "Por que o BM25 é mais apropriado que o BIM binário para documentos de texto completo?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 280,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            280
+          ],
+          "occurrences": 1,
+          "quote": "Infer a LM for each document.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 280,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            280
+          ],
+          "occurrences": 1,
+          "quote": "the probability of generating the query according to each of these document models.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 280,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            280
+          ],
+          "occurrences": 1,
+          "quote": "Rank the documents according to these probabilities.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-031",
+      "query": "Como o modelo de query likelihood ranqueia documentos para uma consulta?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 281,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            281
+          ],
+          "occurrences": 1,
+          "quote": "documents will only give a query non-zero probability if all of the query terms appear in the document.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 282,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            282
+          ],
+          "occurrences": 1,
+          "quote": "a non-occurring term should be possible in a query",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-032",
+      "query": "Por que smoothing é necessário em modelos de linguagem para recuperação?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 290,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            290
+          ],
+          "occurrences": 1,
+          "quote": "is periodically executed on a collection to which new documents are incrementally added over time.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 290,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            290
+          ],
+          "occurrences": 1,
+          "quote": "Given a set of classes, we seek to determine which class(es) a given object belongs to.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-033",
+      "query": "Como a classificação de texto pode automatizar necessidades de informação permanentes?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 305,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            305
+          ],
+          "occurrences": 1,
+          "quote": "we generate a document in the multinomial model",
+          "status": "ok"
+        },
+        {
+          "declared_page": 305,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            305
+          ],
+          "occurrences": 1,
+          "quote": "We generate a document in the Bernoulli model",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-034",
+      "query": "Qual é a diferença entre os modelos multinomial e Bernoulli do Naive Bayes?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 329,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            329
+          ],
+          "occurrences": 1,
+          "quote": "uses centroids to deﬁne the boundaries.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 329,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            329
+          ],
+          "occurrences": 1,
+          "quote": "the vector average or center of mass of its members:",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-035",
+      "query": "Como o classificador Rocchio define as fronteiras entre classes?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 334,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            334
+          ],
+          "occurrences": 1,
+          "quote": "For 1NN we assign each document to the class of its closest neighbor.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 334,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            334
+          ],
+          "occurrences": 1,
+          "quote": "For kNN we assign each document to the majority class of its k closest neighbors",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-036",
+      "query": "Como o kNN decide a classe de um novo documento?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 356,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            356
+          ],
+          "occurrences": 1,
+          "quote": "An SVM is a kind of large-margin classiﬁer",
+          "status": "ok"
+        },
+        {
+          "declared_page": 356,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            356
+          ],
+          "occurrences": 1,
+          "quote": "the goal is to ﬁnd a decision boundary between two classes that is maximally far from any point in the training data",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-037",
+      "query": "O que caracteriza uma support vector machine como classificador de grande margem?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 364,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            364
+          ],
+          "occurrences": 1,
+          "quote": "If the training set D is not linearly separable, the standard approach is to allow the fat decision margin to make a few mistakes",
+          "status": "ok"
+        },
+        {
+          "declared_page": 364,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            364
+          ],
+          "occurrences": 1,
+          "quote": "we introduce slack variables ξi.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-038",
+      "query": "Como a soft-margin SVM difere da SVM estritamente separável?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 387,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            387
+          ],
+          "occurrences": 1,
+          "quote": "Documents in the same cluster behave similarly with respect to relevance to information needs.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 387,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            387
+          ],
+          "occurrences": 1,
+          "quote": "if there is a document from a cluster that is relevant to a search request, then it is likely that other documents from the same cluster are also relevant.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-039",
+      "query": "Qual suposição fundamenta o uso de clustering em recuperação da informação?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 398,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            398
+          ],
+          "occurrences": 1,
+          "quote": "reassigning documents to the cluster with the closest centroid; and recomputing each centroid based on the current members of its cluster.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 398,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            398
+          ],
+          "occurrences": 1,
+          "quote": "around in space in order to minimize RSS.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-040",
+      "query": "Quais são as duas etapas repetidas pelo K-means até a parada?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 415,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            415
+          ],
+          "occurrences": 1,
+          "quote": "Bottomup algorithms treat each document as a singleton cluster at the outset and then successively merge (or agglomerate) pairs of clusters until all clusters have been merged into a single cluster that contains all documents.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 415,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            415
+          ],
+          "occurrences": 1,
+          "quote": "An HAC clustering is typically visualized as a dendrogram",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-041",
+      "query": "Como o hierarchical agglomerative clustering constrói uma hierarquia de documentos?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 419,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            419
+          ],
+          "occurrences": 1,
+          "quote": "the similarity of their most similar members",
+          "status": "ok"
+        },
+        {
+          "declared_page": 419,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            419
+          ],
+          "occurrences": 1,
+          "quote": "the similarity of their most dissimilar members",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-042",
+      "query": "Como single-link e complete-link definem a similaridade entre dois clusters?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 448,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            448
+          ],
+          "occurrences": 1,
+          "quote": "Derive from Σ the matrix Σk formed by replacing by zeros the r −k smallest singular values",
+          "status": "ok"
+        },
+        {
+          "declared_page": 448,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            448
+          ],
+          "occurrences": 1,
+          "quote": "Ck is the best rank-k approximation to C",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-043",
+      "query": "Como a SVD produz uma aproximação de baixo posto da matriz termo-documento?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 452,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            452
+          ],
+          "occurrences": 1,
+          "quote": "the SVD should bring together terms with similar co-occurrences.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 454,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            454
+          ],
+          "occurrences": 1,
+          "quote": "a value of k in the low hundreds can actually increase precision on some query benchmarks.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-044",
+      "query": "Como a redução de dimensionalidade no LSI pode melhorar a recuperação?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 464,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            464
+          ],
+          "occurrences": 1,
+          "quote": "SPAM (in the context of web search) is the manipulation of web page content for the purpose of appearing high up in search results for selected keywords.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-045",
+      "query": "O que é spam em busca na Web e qual objetivo ele persegue?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 475,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            475
+          ],
+          "occurrences": 1,
+          "quote": "deﬁne the k-shingles of d to be the set of all consecutive sequences of k terms in d.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 475,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            475
+          ],
+          "occurrences": 1,
+          "quote": "if it exceeds a preset threshold (say, 0.9), we declare them near duplicates and eliminate one from indexing.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-046",
+      "query": "Como shingles e coeficiente de Jaccard identificam páginas quase duplicadas?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 480,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            480
+          ],
+          "occurrences": 1,
+          "quote": "Crawlers must be designed to be resilient to such traps.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 481,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            481
+          ],
+          "occurrences": 1,
+          "quote": "These politeness policies must be respected.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-047",
+      "query": "Que problemas de robustez e polidez um crawler precisa enfrentar?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 488,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            488
+          ],
+          "occurrences": 1,
+          "quote": "high-quality pages that change frequently should be prioritized for frequent crawling.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 488,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            488
+          ],
+          "occurrences": 1,
+          "quote": "The second consideration is politeness: we must avoid repeated fetch requests to a host within a short time span.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-048",
+      "query": "Quais critérios devem controlar a ordem de URLs na frontier de um crawler?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 499,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            499
+          ],
+          "occurrences": 1,
+          "quote": "The anchor text pointing to page B is a good description of page B.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 499,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            499
+          ],
+          "occurrences": 1,
+          "quote": "The hyperlink from A to B represents an endorsement of page B, by the creator of page A.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-049",
+      "query": "Por que anchor text e hyperlinks podem ajudar no ranqueamento de páginas?",
+      "status": "ok"
+    },
+    {
+      "evidence": [
+        {
+          "declared_page": 501,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 1,
+          "matched_pages": [
+            501
+          ],
+          "occurrences": 1,
+          "quote": "The PageRank of a node will depend on the link structure of the web graph.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 511,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 2,
+          "matched_pages": [
+            511
+          ],
+          "occurrences": 1,
+          "quote": "given a query, every web page is assigned two scores. One is called its hub score and the other its authority score.",
+          "status": "ok"
+        },
+        {
+          "declared_page": 512,
+          "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+          "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+          "evidence_index": 3,
+          "matched_pages": [
+            512
+          ],
+          "occurrences": 1,
+          "quote": "A good hub page is one that points to many good authorities; a good authority page is one that is pointed to by many good hub pages.",
+          "status": "ok"
+        }
+      ],
+      "id": "iir-2009-050",
+      "query": "Como PageRank e HITS diferem na análise de links?",
+      "status": "ok"
+    }
+  ],
+  "documents": [
+    {
+      "document_name": "Book_IntroToIR_ManningC_2009.pdf",
+      "document_sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea",
+      "extractor": "pdftotext",
+      "page_count": 581,
+      "path": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/Book_IntroToIR_ManningC_2009.pdf"
+    }
+  ],
+  "failures": [],
+  "schema_version": "1.0",
+  "status": "ok",
+  "summary": {
+    "case_count": 50,
+    "evidence_count": 107,
+    "failed_evidence_count": 0,
+    "matched_evidence_count": 107,
+    "multiple_match_warnings": 0
+  },
+  "warnings": []
+}

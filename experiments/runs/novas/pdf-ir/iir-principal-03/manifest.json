@@ -1,0 +1,240 @@
+{
+  "artifacts_sha256": {
+    "plots/first_relevant_rank.svg": "3f4aae071b42046e5ab8a38cb1cb83493db59e6a54051303f9f0dbbc9a5e1610",
+    "plots/latency_by_condition.svg": "7465633bc51cd831d8cac27b55efc9f64a0a1324b1df073b39a91afce0d28ab6",
+    "plots/latency_summary.csv": "5e6bda9f2fd181ed56f95e71f8324838ca0291f331ba1c2ebac2e7c5707f4733",
+    "plots/latency_summary.json": "a8f265cefb32caaf0e8353f0fc9fe7c9ee506c2771eddf7e542a7d1d880e0789",
+    "plots/metric_curves.svg": "d39961917181f06e6cf8f4b1a8977283b9c0c4383e714b6e072b12ab7ff47272",
+    "plots/metrics_at_k.svg": "64cb9803c241502d53b8c1b19e4625f59b4d2e4fc1cdc5bbb6e6857b8ae8af43",
+    "plots/metrics_by_k.csv": "50ce079e4c93c5f9086c49328ff3dc51f57d045e130ba41308d53390afe085a3",
+    "plots/metrics_by_k.json": "a03146cbc5c2a7e66a41faf5acbe43313f518589428460763b01002291fd87b9",
+    "plots/metrics_with_ci.csv": "643c5ad456e54100bdb3aba202ea521ed95eb4434da025ec499129f9e3ae15ab",
+    "plots/metrics_with_ci.json": "1dc2fe23a39aee095072918cfe4a33dd4d84b5a42ce7c0836a58fd2ca265364b",
+    "plots/mrr_with_ci.svg": "414c9d3d7513f74497359f93163f037745d97cc6783110d21abe6e12480383b8",
+    "plots/ndcg_at_k_with_ci.svg": "76bd2722443186607c048f058aaae5f837de17b4c06746870e3e85743ff93c6f",
+    "plots/paired_chunking_differences.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "plots/paired_differences.csv": "aff86d033693c8a5e3b74673c515e8c41248a7a4d1e673e641b4299f1b1aaf21",
+    "plots/paired_differences.json": "4f70c5e21e7e9b4c22232ec019c59d4e471ff7e1388b10a3b2117bf147eaf0ed",
+    "plots/recall_at_k_with_ci.svg": "ac78cc4add21e8a769526ec28e0f3ed09af251ef4b7babf343751b3a446c77f6",
+    "plots/report.html": "6c8eb39cfad6e7afaddcd6af2af80c3eed640b1abe7a032eff84ba65f6776153",
+    "recursive_text/chunks.jsonl": "f306e8c1244d435651d358070f486771169d7bee909a4286c5cc1cc19554328b",
+    "recursive_text/ingest-groundtruth.jsonl": "a4c62dbb414045b3b810124072c3249a4b10f992d69beef74620733f450785c9",
+    "recursive_text/matching-report.json": "d24a259178d41cd1700719b573a10f850ecc8657b72cd840ccbcfe0af8b64f64",
+    "recursive_text/ragas-groundtruth.jsonl": "86e80b5a3e8a9fd43abfb1e1afab35823b2aff2066e5109b162a3ae10122d9b8",
+    "recursive_text/retrieval/metrics.csv": "83ecad0839b7c178cda90d6539a692865c6193dc2ef7c9053cafd66e152241fd",
+    "recursive_text/retrieval/results.jsonl": "1c9fd66b4679ef527225e61b749946e20d911cfad83e2898b7d61f1b0a568f00",
+    "recursive_text/retrieval/summary.json": "f956dec07cfe6770c5ff50b0eb74a09f7ad96b0511f9ee64702651f883b447bc",
+    "source-audit.json": "875d5d527fd6f5c059d14c1d9180c10952579286d94f99a6be6de16ca8a4729b"
+  },
+  "conditions": [
+    {
+      "collection": "iir_recursive_gold_50_03",
+      "directory": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/pdf-ir/iir-principal-03/recursive_text",
+      "ingestion": {
+        "action": "uploaded",
+        "documents": [
+          {
+            "chunking_strategy": "recursive_text",
+            "chunks_count": 373,
+            "collection_name": "iir_recursive_gold_50_03",
+            "created_at": "2026-07-14T13:58:42",
+            "id": "361898d9-667d-4892-8b03-7812bb16377d",
+            "original_name": "Book_IntroToIR_ManningC_2009.pdf",
+            "page_count": 581,
+            "size_bytes": 6903344
+          }
+        ],
+        "errors": []
+      },
+      "matching_report": {
+        "case_count": 50,
+        "chunk_count": 373,
+        "evidence_count": 107,
+        "mapped_evidence_count": 107,
+        "unmapped_evidence_count": 0
+      },
+      "retrieval_summary": {
+        "base_url": "http://localhost:8010",
+        "collection_default": "iir_recursive_gold_50_03",
+        "error_rows": 0,
+        "methods": {
+          "bm25": {
+            "latency_ms": {
+              "median": 208.134,
+              "p95": 238.995
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.82,
+              "map": 0.5396,
+              "mrr": 0.5762,
+              "ndcg_at_k": 0.6211,
+              "precision_at_k": 0.114,
+              "recall_at_k": 0.81
+            },
+            "ok_cases": 50
+          },
+          "dense": {
+            "latency_ms": {
+              "median": 206.82,
+              "p95": 223.107
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.98,
+              "map": 0.6637,
+              "mrr": 0.708,
+              "ndcg_at_k": 0.7452,
+              "precision_at_k": 0.128,
+              "recall_at_k": 0.94
+            },
+            "ok_cases": 50
+          },
+          "hybrid": {
+            "latency_ms": {
+              "median": 209.811,
+              "p95": 227.589
+            },
+            "metric_averages": {
+              "hit_rate_at_k": 0.98,
+              "map": 0.6718,
+              "mrr": 0.7094,
+              "ndcg_at_k": 0.7537,
+              "precision_at_k": 0.132,
+              "recall_at_k": 0.96
+            },
+            "ok_cases": 50
+          }
+        },
+        "methods_default": [
+          "bm25",
+          "dense",
+          "hybrid"
+        ],
+        "ok_rows": 150,
+        "run_dir": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/runs/novas/pdf-ir/iir-principal-03/recursive_text/retrieval",
+        "top_k_default": 10,
+        "total_rows": 150
+      },
+      "strategy": "recursive_text"
+    }
+  ],
+  "environment": {
+    "executable": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/.venv-academic/bin/python",
+    "packages": {
+      "datasets": "5.0.0",
+      "docling": "2.95.0",
+      "fastembed": "0.6.1",
+      "numpy": "2.2.5",
+      "qdrant-client": "1.13.3",
+      "ragas": "0.4.3",
+      "sentence-transformers": "4.1.0",
+      "torch": "2.6.0+cpu"
+    },
+    "platform": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+  },
+  "finished_at": "2026-07-14T13:59:50.189347+00:00",
+  "git": {
+    "branch": "production",
+    "changed_paths": [
+      "EXECUCAO_COMPLETA.md",
+      "experiments/groundtruth/materialize.py",
+      "experiments/groundtruth/test_materialize.py",
+      "experiments/plot_pdf_ir.py",
+      "experiments/runs/novas/pdf-ir/pdf-principal-02/manifest.json",
+      "experiments/runs/novas/pdf-ir/pdf-principal-02/plots/metrics_with_ci.svg",
+      "experiments/runs/novas/pdf-ir/pdf-principal-02/plots/report.html",
+      "experiments/runs/novas/pdf-ir/pdf-principal-02/recursive_text/retrieval/metrics.csv",
+      "experiments/test_plot_pdf_ir.py",
+      "ingest/.env.example",
+      "ingest/api/app/core/config.py",
+      "ingest/api/app/main.py",
+      "ingest/api/app/services/indexer.py",
+      "ingest/api/app/services/ingestion.py",
+      "ingest/docker-compose.yml",
+      "Book_IntroToIR_ManningC_2009.pdf",
+      "experiments/cases/iir_50.gold.jsonl",
+      "experiments/runs/novas/pdf-ir/iir-principal-01/",
+      "experiments/runs/novas/pdf-ir/iir-principal-02/",
+      "experiments/runs/novas/pdf-ir/pdf-chunking-gold-02/",
+      "ingest/api/tests/"
+    ],
+    "commit": "31572dea1ebd05f46f848267f4bd6e0ae02fc5d5",
+    "dirty": true
+  },
+  "ingest_configuration": {
+    "app_version": "0.1.0",
+    "chunking_default": "recursive_text",
+    "chunking_parameters": {
+      "chunk_min_words": 180,
+      "chunk_overlap_tokens": 100,
+      "chunk_overlap_words": 100,
+      "chunk_size_tokens": 1000,
+      "chunk_size_words": 700,
+      "parent_child_overlap_words": 60,
+      "parent_child_size_words": 320
+    },
+    "docling": {
+      "enabled": true,
+      "ocr_enabled": true,
+      "ocr_languages": "pt,en"
+    },
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "index_batch_size": 32,
+    "retrieval": {
+      "hybrid_candidate_cap": 200,
+      "hybrid_candidate_multiplier": 4,
+      "hybrid_fusion": "rrf",
+      "methods": [
+        "bm25",
+        "dense",
+        "hybrid"
+      ]
+    },
+    "sparse_language": "portuguese",
+    "sparse_model": "Qdrant/bm25"
+  },
+  "parameters": {
+    "allow_draft_cases": false,
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 42,
+    "case_review_statuses": {
+      "approved": 50
+    },
+    "cases": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/experiments/cases/iir_50.gold.jsonl",
+    "cases_sha256": "9f3b3e9616a0cb6b92be69f63640305c0e11094fbf81d6f4683fe6354ea4f116",
+    "chunking_strategies": [
+      "recursive_text"
+    ],
+    "ingest_url": "http://localhost:8010",
+    "methods": [
+      "bm25",
+      "dense",
+      "hybrid"
+    ],
+    "min_coverage": 1.0,
+    "pdfs": [
+      {
+        "path": "/home/marcelo/Documents/ciag/unesp/finalRag/RAG/Book_IntroToIR_ManningC_2009.pdf",
+        "sha256": "ab67ad67d89309a3d03de219173cfdea471e856a5083c83e49b11be8c01581ea"
+      }
+    ],
+    "plot_results": true,
+    "qdrant_url": "http://localhost:6335",
+    "reuse_collection": false,
+    "source_audit_extractor": "pdftotext",
+    "top_k": 10
+  },
+  "run_id": "iir-principal-03",
+  "schema_version": 1,
+  "source_audit": {
+    "case_count": 50,
+    "evidence_count": 107,
+    "failed_evidence_count": 0,
+    "matched_evidence_count": 107,
+    "multiple_match_warnings": 0
+  },
+  "started_at": "2026-07-14T13:29:05.376591+00:00",
+  "status": "complete",
+  "study": "pdf-ir"
+}
