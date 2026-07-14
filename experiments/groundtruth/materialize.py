@@ -23,7 +23,9 @@ from typing import Any, Iterable, Sequence
 
 
 SCHEMA_VERSION = "1.0"
-NORMALIZATION_VERSION = "nfkc-casefold-alnum-v1"
+NORMALIZATION_VERSION = "nfkc-casefold-alnum-fragmented-v2"
+MAX_FRAGMENT_ORDINAL_GAP = 2
+MAX_EVIDENCE_FRAGMENTS = 3
 
 
 class GroundTruthError(Exception):
@@ -52,12 +54,11 @@ def normalize_text(text: str) -> str:
     """
 
     normalized = unicodedata.normalize("NFKC", text)
-    normalized = re.sub(r"(?<=\w)-[ \t]*\r?\n[ \t]*(?=\w)", "", normalized)
+    normalized = re.sub(r"(?<=\w)\s*-\s*(?=\w)", "", normalized)
     # PDF extractors disagree about whether a hyphen at a visual line break is
     # preserved, separated from the next word, or removed altogether.  Treat
     # the remaining intra-word forms equivalently so that a verbatim quote such
     # as ``pós- alfabetização`` can match extracted ``pós-\nalfabetização``.
-    normalized = re.sub(r"(?<=\w)-[ \t]*(?=\w)", "", normalized)
     # Poppler can preserve a superscript footnote marker directly after the
     # preceding word (for example, ``representado9``).  It is not textual
     # evidence and should not prevent an otherwise verbatim quote from mapping.
@@ -228,7 +229,14 @@ def validate_chunks(records: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
             "content": content,
             "page_number": page_number,
             "_input_order": chunk_index,
+            "_ordinal": raw_chunk.get("ordinal", chunk_index - 1),
         }
+        if (
+            isinstance(chunk["_ordinal"], bool)
+            or not isinstance(chunk["_ordinal"], int)
+            or chunk["_ordinal"] < 0
+        ):
+            raise ValidationError(f"{location}.ordinal must be an integer >= 0")
         if "document_sha256" in raw_chunk:
             chunk["document_sha256"] = _sha256(
                 raw_chunk["document_sha256"], f"{location}.document_sha256"
@@ -248,6 +256,19 @@ def _score_quote(quote: str, content: str) -> dict[str, Any]:
         None, quote_tokens, content_tokens, autojunk=False
     ).find_longest_match(0, len(quote_tokens), 0, len(content_tokens))
     coverage = match.size / len(quote_tokens)
+    compact_quote = normalized_quote.replace(" ", "")
+    compact_content = normalized_content.replace(" ", "")
+    if match.size < len(quote_tokens) and compact_quote and compact_quote in compact_content:
+        return {
+            "coverage": 1.0,
+            "matched_quote_tokens": len(quote_tokens),
+            "quote_token_count": len(quote_tokens),
+            "quote_token_start": 0,
+            "quote_token_end_exclusive": len(quote_tokens),
+            "chunk_token_start": 0,
+            "matched_text_normalized": normalized_quote,
+            "match_mode": "normalized_exact_spacing_insensitive",
+        }
     return {
         "coverage": coverage,
         "matched_quote_tokens": match.size,
@@ -281,6 +302,79 @@ def _public_match(chunk: dict[str, Any], score: dict[str, Any]) -> dict[str, Any
         "chunk_token_start": score["chunk_token_start"],
         "matched_text_normalized": score["matched_text_normalized"],
         "match_mode": score["match_mode"],
+    }
+
+
+def _fragmented_exact_match(
+    scored: Sequence[tuple[dict[str, Any], dict[str, Any]]],
+) -> list[tuple[dict[str, Any], dict[str, Any]]] | None:
+    """Return a minimal, page-local sequence that exactly covers one quote.
+
+    Structural PDF chunkers may split a source paragraph across adjacent document
+    blocks.  We accept that only when the matched token spans reconstruct the quote
+    exactly, in source order, on the same page, with no missing token.
+    """
+    fragments = [
+        (chunk, score)
+        for chunk, score in scored
+        if score["matched_quote_tokens"] > 0
+    ]
+    if not fragments:
+        return None
+    quote_token_count = fragments[0][1]["quote_token_count"]
+    fragments.sort(
+        key=lambda item: (
+            item[1]["quote_token_start"],
+            item[0]["_ordinal"],
+            -item[1]["matched_quote_tokens"],
+        )
+    )
+
+    def extend(
+        path: list[tuple[dict[str, Any], dict[str, Any]]],
+    ) -> list[tuple[dict[str, Any], dict[str, Any]]] | None:
+        last_chunk, last_score = path[-1]
+        if last_score["quote_token_end_exclusive"] == quote_token_count:
+            return path
+        if len(path) >= MAX_EVIDENCE_FRAGMENTS:
+            return None
+        for candidate_chunk, candidate_score in fragments:
+            if candidate_score["quote_token_start"] != last_score["quote_token_end_exclusive"]:
+                continue
+            if candidate_chunk["page_number"] != last_chunk["page_number"]:
+                continue
+            ordinal_gap = candidate_chunk["_ordinal"] - last_chunk["_ordinal"]
+            if not 0 < ordinal_gap <= MAX_FRAGMENT_ORDINAL_GAP:
+                continue
+            result = extend([*path, (candidate_chunk, candidate_score)])
+            if result is not None:
+                return result
+        return None
+
+    for fragment in fragments:
+        if fragment[1]["quote_token_start"] != 0:
+            continue
+        result = extend([fragment])
+        if result is not None:
+            return result
+    return None
+
+
+def _public_fragmented_match(
+    fragments: Sequence[tuple[dict[str, Any], dict[str, Any]]],
+) -> dict[str, Any]:
+    first_score = fragments[0][1]
+    return {
+        "chunk_ids": [chunk["chunk_id"] for chunk, _ in fragments],
+        "document_name": fragments[0][0]["document_name"],
+        "page_number": fragments[0][0]["page_number"],
+        "coverage": 1.0,
+        "matched_quote_tokens": first_score["quote_token_count"],
+        "quote_token_count": first_score["quote_token_count"],
+        "matched_text_normalized": " ".join(
+            score["matched_text_normalized"] for _, score in fragments
+        ),
+        "match_mode": "normalized_exact_fragmented",
     }
 
 
@@ -340,6 +434,9 @@ def materialize_records(
                 if score["coverage"] + 1e-12 >= threshold
             ]
             matches.sort(key=lambda item: item[0]["_input_order"])
+            fragmented_match = None
+            if not matches:
+                fragmented_match = _fragmented_exact_match(scored)
             best = sorted(
                 scored,
                 key=lambda item: (-item[1]["coverage"], item[0]["_input_order"]),
@@ -350,6 +447,12 @@ def materialize_records(
                 relevance_by_chunk[chunk["chunk_id"]] = max(
                     previous, evidence["relevance"]
                 )
+            if fragmented_match is not None:
+                for chunk, _score in fragmented_match:
+                    previous = relevance_by_chunk.get(chunk["chunk_id"], 0)
+                    relevance_by_chunk[chunk["chunk_id"]] = max(
+                        previous, evidence["relevance"]
+                    )
 
             evidence_report = {
                 "evidence_index": evidence_index,
@@ -359,20 +462,26 @@ def materialize_records(
                 "normalized_quote": normalize_text(evidence["quote"]),
                 "relevance": evidence["relevance"],
                 "candidate_chunk_count": len(candidates),
-                "matched_chunk_ids": [chunk["chunk_id"] for chunk, _ in matches],
+                "matched_chunk_ids": (
+                    [chunk["chunk_id"] for chunk, _ in matches]
+                    if fragmented_match is None
+                    else [chunk["chunk_id"] for chunk, _ in fragmented_match]
+                ),
                 "best_coverage": _round_coverage(
                     best[0][1]["coverage"] if best else 0.0
                 ),
-                "matches": [
-                    _public_match(chunk, score) for chunk, score in matches
-                ],
+                "matches": (
+                    [_public_match(chunk, score) for chunk, score in matches]
+                    if fragmented_match is None
+                    else [_public_fragmented_match(fragmented_match)]
+                ),
                 "best_candidates": [
                     _public_match(chunk, score) for chunk, score in best
                 ],
-                "status": "mapped" if matches else "unmapped",
+                "status": "mapped" if matches or fragmented_match is not None else "unmapped",
             }
             evidence_reports.append(evidence_report)
-            if not matches:
+            if not matches and fragmented_match is None:
                 unmatched.append(
                     {
                         "case_id": case["id"],
@@ -426,7 +535,12 @@ def materialize_records(
             "repair_line_break_hyphenation": True,
             "punctuation_policy": "replace with spaces",
             "diacritics_policy": "retain",
-            "coverage": "longest contiguous normalized token sequence / quote tokens",
+            "coverage": "contiguous normalized token sequence, or exact page-local fragment reconstruction / quote tokens",
+            "fragmented_evidence": {
+                "enabled": True,
+                "rule": "up to 3 ordered, page-local chunks may exactly cover a quote",
+                "max_ordinal_gap": MAX_FRAGMENT_ORDINAL_GAP,
+            },
         },
         "parameters": {"min_coverage": threshold},
         "summary": {

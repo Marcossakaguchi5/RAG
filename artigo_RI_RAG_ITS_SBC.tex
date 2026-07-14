@@ -1,22 +1,20 @@
 \documentclass[12pt]{article}
 
 \usepackage{sbc-template}
-\usepackage{graphicx,url}
 \usepackage[utf8]{inputenc}
 \usepackage[brazil]{babel}
-\usepackage{amsmath}
+\usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{array}
-\usepackage{enumitem}
+\usepackage{url}
 
 \sloppy
 
-\title{Impacto de Técnicas de Recuperação da Informação no Desempenho de Sistemas RAG para Tutores Inteligentes}
+\title{Recuperação da Informação para RAG Educacional: avaliação de BM25, busca densa e fusão híbrida}
 
 \author{Fabiana Marques Costa\inst{1}, Marcos Hideki Nishida Sakaguchi\inst{1}}
 
 \address{Programa de Pós-Graduação em Ciência da Computação -- Instituto de Geociências e Ciências Exatas\\
-Universidade Estadual Paulista ``Júlio de Mesquita Filho'' (UNESP)\\
+Universidade Estadual Paulista Júlio de Mesquita Filho (UNESP)\\
 Rio Claro -- SP -- Brasil
 \email{fabiana.m.costa@unesp.br, marcos.sakaguchi@unesp.br}
 }
@@ -26,387 +24,303 @@ Rio Claro -- SP -- Brasil
 \maketitle
 
 \begin{abstract}
-This paper investigates Information Retrieval techniques for educational question answering, treating the retrieval stage as the main experimental object and RAG evaluation as an exploratory extension. We organize the study into three stages: a controlled benchmark with SciQ, a passage-retrieval study over educational PDFs with canonical evidence-based relevance judgments, and an optional downstream evaluation of generated answers. Preliminary SciQ results over 878 test queries compare BM25, dense retrieval and hybrid retrieval by Reciprocal Rank Fusion. BM25 achieved the best first-rank effectiveness, whereas the hybrid method obtained the highest Hit@10. The proposed protocol also separates source-level evidence from chunk identifiers, enabling the same ground truth to be materialized under different segmentation strategies.
+Retrieval quality constrains the evidence available to Retrieval-Augmented
+Generation (RAG) tutors. This paper evaluates BM25, dense retrieval with
+BGE-M3, and hybrid retrieval by Reciprocal Rank Fusion in three reproducible
+retrieval studies: SciQ (878 test queries and 12,135 indexed support passages),
+a 49-page educational PDF, and a 581-page Information Retrieval textbook. The
+two PDF collections contain 50 evidence-anchored development queries each. The
+hybrid method achieved the highest MRR@10 and Recall@10 in SciQ (0.797 and
+0.968) and in the 49-page collection (0.815 and 0.970). In the textbook,
+dense and hybrid retrieval outperformed BM25; the hybrid method reached 0.709
+MRR@10 and 0.960 Recall@10, against 0.576 and 0.810 for BM25. Source-level
+evidence is materialized into chunk identifiers for each segmentation strategy,
+which supports a separate chunking ablation. The results concern retrieval;
+evaluation of generated RAG answers is left for future work.
 \end{abstract}
 
 \begin{resumo}
-Este artigo investiga técnicas de Recuperação da Informação para perguntas sobre materiais educacionais, tratando a recuperação como objeto experimental principal e a avaliação RAG como extensão exploratória. O estudo é organizado em três etapas: um benchmark controlado com o SciQ, um estudo de recuperação de passagens em PDFs educacionais com julgamentos ancorados em evidências canônicas e uma avaliação opcional das respostas geradas. Resultados preliminares em 878 consultas de teste do SciQ comparam BM25, recuperação densa e recuperação híbrida por \textit{Reciprocal Rank Fusion}. O BM25 apresentou o melhor desempenho na primeira posição, enquanto o método híbrido obteve o maior Hit@10. O protocolo também separa a evidência no documento dos identificadores de \textit{chunks}, permitindo materializar o mesmo ground truth sob diferentes estratégias de segmentação.
+A qualidade da recuperação limita as evidências disponíveis para tutores
+baseados em \textit{Retrieval-Augmented Generation} (RAG). Este artigo avalia
+BM25, recuperação densa com BGE-M3 e recuperação híbrida por \textit{Reciprocal
+Rank Fusion} em três estudos reproduzíveis de RI: SciQ (878 consultas de teste
+e 12.135 parágrafos de suporte indexados), um PDF educacional de 49 páginas e
+um livro de Recuperação da Informação de 581 páginas. As duas coleções em PDF
+contêm 50 consultas de desenvolvimento ancoradas em evidências. O método
+híbrido obteve os maiores MRR@10 e Recall@10 no SciQ (0,797 e 0,968) e na
+coleção de 49 páginas (0,815 e 0,970). No livro de RI, os métodos denso e
+híbrido superaram o BM25; o híbrido atingiu MRR@10 de 0,709 e Recall@10 de
+0,960, ante 0,576 e 0,810 do BM25. A evidência é registrada no documento-fonte
+e materializada em identificadores de \textit{chunks} para cada segmentação,
+permitindo uma ablação específica de \textit{chunking}. Os resultados tratam
+da recuperação; a avaliação das respostas geradas pelo RAG permanece como
+trabalho futuro.
 \end{resumo}
 
 \section{Introdução}
 
-A incorporação de Inteligência Artificial (IA) em ambientes educacionais tem ampliado as possibilidades de personalização, acompanhamento e mediação do processo de aprendizagem. Sistemas Tutores Inteligentes (\textit{Intelligent Tutoring Systems} -- ITS) representam uma das linhas mais tradicionais desse campo, buscando adaptar conteúdos, feedbacks e estratégias pedagógicas ao perfil do estudante \cite{woolf2009}. Entretanto, a construção desses sistemas historicamente depende de modelos explícitos de domínio, regras pedagógicas e estruturas de conhecimento que podem ser custosas de manter, especialmente em contextos nos quais os conteúdos se modificam com frequência.
+Modelos de linguagem ampliam as possibilidades de diálogo e explicação em
+Sistemas Tutores Inteligentes (ITS), mas a fluência da resposta não assegura
+correção, rastreabilidade ou aderência ao material da disciplina
+\cite{woolf2009,kuhail2023}. RAG busca reduzir esse problema ao condicionar a
+geração a evidências recuperadas de uma base documental \cite{lewis2020}. Em
+um tutor, porém, a resposta só pode ser tão bem fundamentada quanto os trechos
+que o recuperador disponibiliza ao modelo gerador.
 
-Mais recentemente, Modelos de Linguagem de Grande Escala (\textit{Large Language Models} -- LLMs) passaram a ser explorados como interfaces conversacionais para apoio ao ensino, devido à sua capacidade de gerar explicações em linguagem natural, adaptar exemplos e responder perguntas abertas. Apesar desse potencial, o uso isolado de LLMs em cenários educacionais apresenta riscos relevantes. Entre eles estão a geração de respostas não fundamentadas, a apresentação de informações incorretas com aparência de confiança e a dificuldade de garantir alinhamento ao material instrucional adotado por uma disciplina ou instituição. Em aplicações de tutoria, tais problemas são particularmente críticos, pois respostas incorretas podem induzir concepções equivocadas e comprometer a aprendizagem.
+Este trabalho trata a Recuperação da Informação (RI) como objeto experimental
+principal. Comparamos BM25, recuperação densa e fusão híbrida em um benchmark
+controlado e em dois corpora educacionais em PDF. As contribuições são: (i) um
+protocolo que preserva a evidência no documento-fonte antes de derivar os
+\textit{chunks}; (ii) resultados atualizados e rastreáveis em três conjuntos;
+e (iii) uma ablação de segmentação separada da comparação entre recuperadores.
+Não são reportadas métricas de respostas geradas: essa camada será executada
+somente após a consolidação de um conjunto independente de avaliação.
 
-Nesse cenário, a arquitetura de \textit{Retrieval-Augmented Generation} (RAG) surge como alternativa promissora ao combinar recuperação de conhecimento externo com geração de linguagem natural \cite{lewis2020}. Em um pipeline RAG, documentos educacionais são indexados, consultas dos estudantes são usadas para recuperar trechos relevantes e o modelo gerador recebe esses trechos como contexto para produzir a resposta. Assim, o sistema deixa de depender exclusivamente do conhecimento paramétrico do LLM e passa a operar sobre uma base documental controlada, atualizável e potencialmente verificável.
+\section{Recuperação e Avaliação em RAG Educacional}
 
-Contudo, a efetividade de um sistema RAG depende diretamente da qualidade do componente de Recuperação da Informação (RI). Caso o recuperador selecione trechos irrelevantes, incompletos ou semanticamente distantes da dúvida do estudante, o gerador poderá produzir respostas vagas, incorretas ou pouco alinhadas ao material de referência. Por outro lado, uma recuperação de alta qualidade tende a fornecer evidências mais adequadas, favorecendo respostas mais fiéis ao corpus, mais úteis pedagogicamente e menos suscetíveis a alucinações.
+BM25 é uma referência eficiente para correspondência lexical, particularmente
+quando termos técnicos da consulta ocorrem no material \cite{manning2008,
+robertson2009}. A recuperação densa representa consultas e passagens em um
+espaço vetorial e pode atender melhor a paráfrases ou vocabulários distintos
+\cite{karpukhin2020}. A estratégia híbrida combina as listas dos dois
+recuperadores; neste estudo, a combinação é feita por \textit{Reciprocal Rank
+Fusion} (RRF) \cite{cormack2009}.
 
-Apesar dessa dependência, muitos trabalhos em RAG enfatizam o modelo generativo, o prompt ou a etapa de pós-processamento, enquanto a escolha da técnica de recuperação é frequentemente apresentada de forma secundária. Essa lacuna é ainda mais relevante em contextos educacionais, nos quais a avaliação não deve considerar apenas precisão factual, mas também clareza, coerência didática, adequação ao nível do estudante, rastreabilidade da fonte e capacidade de apoiar a aprendizagem. Dessa forma, torna-se necessário investigar a RI como variável central no desempenho de sistemas RAG voltados à tutoria inteligente.
+Avaliar apenas a resposta final esconderia se um erro decorre da recuperação ou
+da geração. Por isso, a primeira camada do protocolo mede o ranqueamento com
+MRR, MAP, nDCG, Recall e Hit Rate. Métricas de fidelidade e relevância de
+resposta, como as propostas pelo RAGAS \cite{ragas2023}, ficam para a etapa
+posterior de geração. Essa separação é particularmente importante em RAG,
+pois a qualidade de documentos recuperados e a utilidade para a geração não
+são necessariamente equivalentes \cite{salemi2024}.
 
-Este artigo propõe um protocolo experimental para analisar o impacto de diferentes técnicas de RI em sistemas RAG educacionais. O foco recai sobre a comparação entre abordagens esparsas, densas, híbridas e com reranqueamento, avaliadas em duas camadas complementares: (i) a qualidade da recuperação, por meio de métricas clássicas de RI; e (ii) a qualidade da resposta gerada, por meio de métricas específicas para RAG e critérios pedagógicos. As principais contribuições esperadas deste trabalho são: 
+\section{Método}
 
-\begin{enumerate}[label=(\roman*)]
-    \item sistematizar o papel da Recuperação da Informação como componente determinante em tutores inteligentes baseados em RAG;
-    \item propor um protocolo de avaliação em duas camadas, distinguindo métricas de recuperação e métricas de geração;
-    \item comparar estratégias de recuperação esparsa, densa, híbrida e reranqueada em cenários de perguntas educacionais;
-    \item analisar a relação entre métricas clássicas de RI e métricas de qualidade final das respostas geradas;
-    \item disponibilizar uma implementação modular com rotinas de ingestão, exportação de evidências experimentais e geração de artefatos reprodutíveis para análise.
-\end{enumerate}
+\subsection{Conjuntos e julgamentos de relevância}
 
-\section{Fundamentação Teórica e Trabalhos Relacionados}
+O SciQ \cite{sciq2017} fornece uma baseline controlada: cada uma das 878
+consultas do conjunto de teste possui um único parágrafo de suporte relevante,
+entre 12.135 passagens indexadas. Os outros dois conjuntos são de
+desenvolvimento e foram construídos para validar a instrumentação em materiais
+educacionais reais: \textit{A importância do ato de ler}, de Paulo Freire
+\cite{freire1989}, com 49 páginas, 50 consultas e 69 evidências; e
+\textit{Introduction to Information Retrieval}, com 581 páginas, 50 consultas
+e 107 evidências \cite{manning2008}.
 
-\subsection{Sistemas Tutores Inteligentes e IA na Educação}
+Em ambos os PDFs, cada caso registra o hash do arquivo, a página, a citação e
+o grau de relevância da evidência. Esse registro é materializado nos
+identificadores de \textit{chunks} de cada condição, evitando que uma mudança
+de segmentação invalide os julgamentos. As 69 e 107 evidências, respectivamente,
+foram localizadas e materializadas integralmente nas rodadas reportadas. Os
+casos de PDF foram redigidos com apoio de IA e revisados por um único anotador;
+portanto, são tratados como desenvolvimento, e não como teste independente.
 
-Sistemas Tutores Inteligentes buscam reproduzir, em algum grau, características de um processo de tutoria individualizada. Em geral, esses sistemas são compostos por um modelo do domínio, responsável por representar o conhecimento a ser ensinado; um modelo do estudante, que descreve o estado de aprendizagem, dificuldades e progresso; um modelo pedagógico, que define estratégias de intervenção; e uma interface de interação \cite{woolf2009}. Essa estrutura permite que o sistema ofereça feedbacks personalizados, selecione atividades adequadas e acompanhe a evolução do estudante. Revisões recentes sobre chatbots educacionais também indicam a ampliação do uso de agentes conversacionais como suporte ao aprendizado, ainda que persistam desafios de avaliação, confiabilidade e integração pedagógica \cite{kuhail2023}.
+\subsection{Condições e métricas}
 
-A literatura em IA na Educação tem mostrado que sistemas educacionais inteligentes podem contribuir para aprendizagem ativa, prática guiada e feedback imediato. Entretanto, a construção de tutores tradicionais exige modelagem detalhada do domínio e engenharia de conhecimento, o que dificulta sua escalabilidade para múltiplas disciplinas, cursos e materiais. Além disso, quando o conteúdo muda, o sistema precisa ser atualizado manualmente, o que limita sua aplicabilidade em ambientes de ensino dinâmicos.
+Todos os métodos usam a mesma coleção por corpus e a segmentação
+\texttt{recursive\_text} na comparação principal. BM25 fornece a busca
+esparsa; a busca densa usa BGE-M3; e o híbrido aplica RRF aos dois rankings.
+As consultas recebem até dez passagens. Reportamos MRR@10, MAP@10, nDCG@10,
+Recall@10 e Hit@10. No SciQ, como há uma única evidência por pergunta,
+Recall@k equivale a Hit@k e MAP@k coincide com MRR@k.
 
-Com a popularização dos LLMs, novas possibilidades de tutoria conversacional passaram a ser exploradas. Diferentemente de tutores baseados apenas em regras, LLMs conseguem produzir explicações variadas, reformular conceitos, responder dúvidas abertas e adaptar o tom da resposta. No entanto, a fluidez linguística não garante correção, completude ou alinhamento pedagógico. Para que um tutor baseado em LLM seja confiável, é necessário que suas respostas estejam ancoradas em fontes apropriadas e que o sistema seja capaz de recuperar conteúdos relevantes antes de gerar a explicação.
+Os intervalos de confiança de 95\% foram estimados por \textit{bootstrap}
+pareado com 2.000 reamostragens. Para Hit@10, as comparações entre métodos usam
+o teste exato de McNemar com correção de Holm. Cada rodada preserva manifesto,
+resultados por consulta, métricas, gráficos e versões de dependências.
 
-\subsection{Recuperação da Informação em Sistemas Baseados em Conhecimento}
+\section{Resultados de Recuperação}
 
-A Recuperação da Informação é a área responsável por representar, indexar, buscar e ordenar documentos de acordo com sua relevância para uma consulta \cite{manning2008}. Em sistemas educacionais, a RI pode ser utilizada para localizar trechos de livros, slides, apostilas, normas, exercícios resolvidos ou bases de conhecimento que respondam a uma pergunta do estudante. A forma como esses trechos são selecionados influencia diretamente a qualidade da mediação realizada pelo sistema.
+A Tabela~\ref{tab:resultados} reúne os resultados no top-10. A Figura~\ref{fig:sciq-recall-k}
+mostra como a cobertura no SciQ cresce com $k$, enquanto a
+Figura~\ref{fig:resultados-tres-corpora} permite comparar descritivamente os
+três conjuntos.
 
-Abordagens clássicas de RI, como TF-IDF e BM25, operam principalmente com base em correspondência lexical. O BM25, em particular, permanece amplamente utilizado por sua eficiência, simplicidade e bom desempenho em cenários nos quais os termos da consulta aparecem de maneira explícita nos documentos \cite{robertson2009}. Essa característica é útil em bases educacionais que possuem terminologia técnica específica, nomes de conceitos, fórmulas ou definições formais.
-
-Entretanto, métodos lexicais apresentam limitações quando a consulta e o documento expressam a mesma ideia com vocabulários distintos. Por exemplo, uma pergunta como ``por que a busca vetorial encontra textos parecidos mesmo sem palavras iguais?'' pode demandar a recuperação de trechos que expliquem similaridade semântica, embeddings ou espaços vetoriais, ainda que esses termos não apareçam na consulta do estudante. Para lidar com esse tipo de cenário, técnicas neurais de recuperação densa representam consultas e documentos em espaços vetoriais contínuos, permitindo comparar proximidade semântica \cite{karpukhin2020}.
-
-A recuperação densa, contudo, também apresenta desafios. Seu desempenho depende da qualidade dos embeddings, do domínio de treinamento, da estratégia de segmentação dos documentos e dos parâmetros de indexação. Além disso, modelos densos podem recuperar trechos semanticamente semelhantes, mas insuficientemente específicos para responder uma pergunta que exige termos exatos, datas, nomes ou definições formais. Por esse motivo, abordagens híbridas têm sido exploradas para combinar a precisão lexical de métodos esparsos com a flexibilidade semântica de métodos densos.
-
-\subsection{Retrieval-Augmented Generation}
-
-A arquitetura RAG combina um mecanismo de recuperação com um modelo gerativo. Originalmente proposta por Lewis et al. \cite{lewis2020}, a abordagem utiliza uma memória não paramétrica externa para fornecer evidências ao modelo de linguagem durante a geração. Em vez de produzir respostas apenas a partir dos parâmetros aprendidos no treinamento, o modelo passa a condicionar sua saída a documentos recuperados em tempo de inferência.
-
-Um pipeline RAG típico envolve cinco etapas: (i) coleta e preparação do corpus; (ii) segmentação dos documentos em trechos menores, ou \textit{chunks}; (iii) indexação dos trechos por um ou mais métodos de recuperação; (iv) recuperação dos \textit{top-k} trechos mais relevantes para uma consulta; e (v) geração da resposta com base no contexto recuperado. Embora a etapa final seja frequentemente a mais visível para o usuário, a etapa de recuperação define o espaço informacional a partir do qual a resposta será construída.
-
-Em tutores inteligentes, essa arquitetura pode ser utilizada para ancorar respostas em materiais oficiais da disciplina. Por exemplo, uma base RAG pode conter capítulos de livros, notas de aula, listas de exercícios e rubricas de avaliação. Quando o estudante pergunta sobre um conceito, o sistema recupera trechos desses materiais e gera uma explicação contextualizada. Essa dinâmica favorece rastreabilidade, atualização e controle sobre as fontes, desde que o componente de recuperação seja suficientemente eficaz.
-
-\subsection{Avaliação de Sistemas RAG}
-
-Avaliar sistemas RAG é uma tarefa complexa porque o desempenho final depende da interação entre múltiplos componentes. Uma resposta ruim pode decorrer de recuperação inadequada, de contexto excessivamente longo, de falha do gerador, de prompt mal formulado ou de divergência entre a pergunta e o corpus. Por isso, avaliar apenas a resposta final pode esconder problemas específicos do recuperador.
-
-Ferramentas como RAGAS propõem métricas para avaliação automatizada de sistemas RAG, considerando dimensões como relevância do contexto, fidelidade da resposta ao contexto e relevância da resposta para a pergunta \cite{ragas2023}. Trabalhos posteriores também destacam a necessidade de avaliação mais centrada no recuperador. Além disso, levantamentos recentes sobre avaliação de RAG destacam que a análise deve considerar tanto recuperação quanto geração \cite{yu2024survey}. Ferramentas como ARES também reforçam a avaliação por dimensões, incluindo relevância de contexto, fidelidade e relevância da resposta \cite{ares2023}. Salemi e Zamani \cite{salemi2024} argumentam que métricas tradicionais baseadas apenas em relevância de documentos podem ter correlação limitada com o desempenho final do RAG, sugerindo métodos que aproximem a avaliação da recuperação da utilidade dos documentos para a geração.
-
-Essas discussões reforçam que a avaliação de RAG deve ser realizada em camadas. A primeira camada mede se o sistema recupera os documentos ou trechos esperados; a segunda verifica se a resposta gerada é correta, fiel, útil e pedagogicamente adequada. Em contextos educacionais, essa separação é essencial, pois um trecho pode ser relevante do ponto de vista informacional, mas ainda assim insuficiente para gerar uma explicação clara para determinado nível de estudante.
-
-\subsection{Lacunas na Literatura}
-
-A análise dos trabalhos relacionados indica três lacunas principais. A primeira é a ausência de comparações sistemáticas entre técnicas de recuperação em cenários educacionais baseados em RAG. Embora existam estudos sobre RAG em tarefas gerais de QA e estudos sobre tutores baseados em LLMs, ainda são menos frequentes análises que isolem a técnica de RI como variável experimental principal.
-
-A segunda lacuna está relacionada à integração entre métricas clássicas de RI e métricas de qualidade gerativa. Métricas como Recall@k, MRR e nDCG permitem medir qualidade de ranqueamento, mas não necessariamente indicam se a resposta final será fiel, clara ou útil. Por outro lado, métricas de RAG capturam dimensões da geração, mas podem não explicar qual etapa do pipeline causou o erro.
-
-A terceira lacuna refere-se ao domínio educacional. A avaliação de respostas em tutores inteligentes precisa considerar aspectos pedagógicos adicionais, como adequação ao nível do estudante, presença de explicação gradual, ausência de resposta direta quando o objetivo é estimular raciocínio e alinhamento ao material da disciplina. Dessa forma, a análise de RI em RAG educacional deve ir além de benchmarks genéricos e considerar também corpora e perguntas representativas de situações reais de aprendizagem.
-
-\section{Formulação do Problema}
-
-O problema investigado neste trabalho pode ser formulado da seguinte forma: dado um corpus educacional $C$, um conjunto de perguntas de estudantes $Q$ e um pipeline RAG $P$, em que medida diferentes técnicas de Recuperação da Informação alteram a qualidade das respostas geradas por um tutor inteligente?
-
-Neste estudo, a técnica de recuperação é tratada como variável independente principal. O modelo gerador, o prompt, o corpus, o número de documentos recuperados e os parâmetros de geração devem ser mantidos constantes sempre que possível. A estratégia de segmentação em \textit{chunks} pode ser mantida fixa, quando o objetivo for isolar apenas o efeito do recuperador, ou tratada como variável experimental adicional, quando se deseja analisar seu impacto sobre a qualidade da recuperação. Dessa forma, busca-se reduzir interferências externas e observar com maior clareza o efeito de cada componente sobre o desempenho final.
-
-A investigação é orientada pelas seguintes questões de pesquisa:
-
-\begin{description}[leftmargin=0.5cm]
-    \item[RQ1:] Como BM25, recuperação densa e recuperação híbrida diferem em efetividade e latência no SciQ e em um corpus educacional em português?
-    \item[RQ2:] As diferenças entre os recuperadores se mantêm entre corpora e entre tipos de pergunta educacional?
-    \item[RQ3:] Qual é a concordância entre o mapeamento semiautomático de evidências documentais para \textit{chunks} e os julgamentos humanos?
-    \item[RQ4-E:] Em uma análise exploratória, métricas de RI por pergunta estão associadas à correção e à fidelidade das respostas geradas pelo RAG?
-\end{description}
-
-A partir dessas questões, formulam-se as seguintes hipóteses:
-
-\begin{description}[leftmargin=0.5cm]
-    \item[H1:] Estratégias híbridas tendem a aumentar a cobertura em valores maiores de $k$, enquanto o BM25 pode permanecer competitivo nas primeiras posições em corpora com forte sobreposição lexical.
-    \item[H2:] O desempenho relativo dos recuperadores varia com o corpus, o idioma e o tipo de pergunta.
-    \item[H3:] Evidências textuais canônicas podem ser materializadas automaticamente para diferentes estratégias de segmentação com alta concordância após revisão humana dos casos ambíguos.
-    \item[H4-E:] Métricas de recuperação apresentam associação positiva, mas não perfeita, com métricas de correção e fidelidade da resposta final.
-\end{description}
-
-\section{Metodologia Proposta}
-
-\subsection{Visão Geral do Pipeline Experimental}
-
-A metodologia organiza o estudo em uma pipeline modular de RI. O corpus é coletado, normalizado e segmentado; os mesmos trechos são indexados para cada estratégia de recuperação; e todas as condições respondem ao mesmo conjunto de consultas. Métricas, estatística e gráficos são produzidos em lote. Somente na extensão RAG os \textit{top-k} trechos são encaminhados a um gerador com prompt fixo e avaliados quanto à resposta.
-
-A adoção de um pipeline modular é importante porque permite substituir apenas o componente de recuperação, mantendo os demais elementos constantes. Assim, é possível comparar o impacto das técnicas de RI sem confundir seus efeitos com mudanças no modelo gerador ou no desenho do prompt.
-
-\subsection{Desenho em Três Estudos e Ground Truth Canônico}
-
-O protocolo é dividido em três estudos complementares. O primeiro utiliza o SciQ como benchmark controlado de RI em nível de documento. O segundo utiliza materiais educacionais em PDF e avalia recuperação em nível de passagem, constituindo o cenário principal de validade ecológica. O terceiro reutiliza as perguntas do segundo estudo para uma análise exploratória da geração RAG. Essa organização distingue os três estudos dos três recuperadores atualmente implementados no benchmark, a saber, BM25, recuperação densa e recuperação híbrida por RRF.
-
-Para o corpus em PDF, o ground truth não é definido diretamente por identificadores de \textit{chunks}. Esses identificadores são dependentes da ingestão e podem mudar quando o documento é reprocessado ou quando a estratégia de segmentação é alterada. Cada pergunta é, portanto, associada a uma ou mais evidências canônicas no documento-fonte, registradas por hash do arquivo, página, citação textual e grau de relevância. Um passo de materialização mapeia automaticamente essas evidências para os \textit{chunks} de cada condição experimental. Essa separação permite comparar estratégias de segmentação sem refazer a anotação e mantém uma mesma origem para os qrels de RI e para as respostas de referência usadas na etapa RAG.
-
-A automação é utilizada como apoio à anotação, não como substituta do julgamento humano. Perguntas podem ser construídas a partir de evidências previamente selecionadas, ou candidatos podem ser obtidos pela união dos resultados dos diferentes recuperadores, seguindo a lógica de \textit{pooling} empregada na construção de coleções de teste de RI \cite{trecqrels}. Em ambos os casos, os itens de teste devem ser revisados sem exposição do método, da posição ou do escore que originou o candidato. Evidências sem correspondência textual, ambíguas ou apenas parcialmente mapeadas retornam para adjudicação. Até essa revisão, o conjunto é tratado como \textit{silver}; somente a versão aprovada é utilizada como \textit{gold}.
-
-Como piloto de instrumentação, foram redigidas com auxílio de LLM 32 perguntas de desenvolvimento e respectivas respostas de referência, ancoradas em 37 citações curtas de um PDF educacional. Uma auditoria automática confirmou o hash do documento e localizou as 37 evidências nas páginas físicas declaradas. Esses casos não são apresentados como julgamentos humanos nem entram nos resultados deste artigo: permanecem identificados como \textit{silver} até uma revisão independente de naturalidade da pergunta, correção da resposta e suficiência da evidência.
-
-\subsection{Implementação Inicial da Pipeline de Ingestão e Recuperação}
-
-Como primeira etapa experimental, foi implementada uma pipeline de ingestão e avaliação de recuperação separada da etapa generativa. Essa decisão metodológica permite isolar o comportamento do recuperador antes de introduzir variáveis associadas ao LLM, ao prompt e à avaliação da resposta final. A pipeline inicial organiza o processo em quatro fases: (i) preparação do conjunto de dados; (ii) ingestão dos textos no índice vetorial e esparso; (iii) execução das consultas para diferentes métodos de recuperação; e (iv) cálculo agregado das métricas de RI.
-
-No experimento preliminar, utilizou-se o SciQ como benchmark controlado. Cada parágrafo de suporte (\textit{support}) foi tratado como documento da base de conhecimento, enquanto cada pergunta (\textit{question}) foi usada como consulta. A relação entre a pergunta e seu parágrafo de suporte foi armazenada como julgamento de relevância (\textit{qrel}). Essa separação evita que perguntas, respostas corretas ou distratores sejam inseridos no índice, reduzindo o risco de vazamento experimental. Na configuração utilizada, após a remoção de exemplos sem suporte textual suficiente, foram gerados 12.135 documentos únicos, 12.146 consultas e 12.146 julgamentos de relevância, dos quais 878 consultas pertencem ao conjunto de teste.
-
-A camada de indexação foi construída sobre uma coleção dedicada no Qdrant, com dois tipos de representação para o mesmo documento: vetores densos, produzidos por um modelo de embeddings, e vetores esparsos BM25, produzidos pelo FastEmbed. A busca lexical, a busca densa e a busca híbrida são executadas sobre a mesma coleção, o que reduz diferenças causadas por variações de corpus ou pré-processamento. A busca híbrida utiliza fusão por RRF, conforme descrito anteriormente, combinando os rankings esparso e denso.
-
-A implementação foi organizada em dois módulos: um módulo de ingestão e recuperação e um módulo de chat. O módulo de ingestão recebe documentos, extrai conteúdo, segmenta os textos, armazena metadados e \textit{chunks}, indexa vetores densos e esparsos e disponibiliza uma API de busca. Em documentos PDF, a extração pode ser realizada com Docling, preservando estrutura textual quando disponível. A interface do módulo permite criar ou selecionar coleções, enviar documentos, escolher a estratégia de segmentação, executar buscas por BM25, busca densa ou busca híbrida e inspecionar os \textit{chunks} retornados.
-
-A pipeline também registra artefatos experimentais. Para a camada de recuperação, o sistema permite exportar resultados pelo painel web em JSON ou CSV, incluindo consulta, método de recuperação, \textit{top-k}, identificadores dos \textit{chunks}, escores, métricas e marcações de relevância. Para a camada de chat, a interface permite exportar pergunta, resposta, fontes recuperadas e métricas associadas. Além disso, foram implementados scripts de benchmark que separam corpus, consultas e julgamentos de relevância, executam os métodos de recuperação e geram arquivos consolidados com resultados, métricas e gráficos.
-
-Essa implementação sustenta o primeiro estudo, com o SciQ. O passo seguinte do núcleo de RI é revisar, congelar e avaliar o ground truth canônico já iniciado sobre PDFs. Somente depois dessa etapa, as mesmas perguntas e evidências serão projetadas para a avaliação RAG, na qual os trechos recuperados serão enviados a um gerador com prompt fixo e avaliados em lote com métricas do RAGAS. Essa ordem evita introduzir o LLM antes de validar o recuperador.
-
-\subsection{Preparação do Corpus}
-
-O corpus deve ser composto por materiais educacionais representativos do domínio analisado. Em um cenário de aplicação real, esse corpus pode incluir apostilas, livros-texto, notas de aula, listas de exercícios, transcrições de aulas, documentos institucionais e respostas comentadas. Para fins de comparação controlada, também podem ser utilizados datasets públicos de question answering e recuperação, como SQuAD, HotpotQA, SciQ, ARC e subconjuntos do BEIR \cite{squad2016,hotpotqa2018,sciq2017,arc2018,thakur2021beir}.
-
-A preparação envolve conversão dos documentos para texto, remoção de ruídos, preservação de metadados e segmentação em \textit{chunks}. A segmentação é uma etapa crítica, pois trechos muito longos podem introduzir ruído no contexto, enquanto trechos muito curtos podem perder informação necessária para responder à pergunta. Para cada \textit{chunk}, recomenda-se armazenar metadados como documento de origem, seção, página, tópico, data e nível educacional estimado.
-
-Na implementação atual, a segmentação foi tratada como componente configurável da pipeline. Foram incorporadas estratégias de janela fixa por tokens, segmentação textual recursiva e estratégias baseadas na estrutura extraída pelo Docling. A Tabela~\ref{tab:chunking} resume as alternativas disponíveis. Em datasets já fornecidos em texto, como o SciQ, são aplicáveis diretamente as estratégias \texttt{fixed\_token} e \texttt{recursive\_text}; as estratégias da família \texttt{docling\_...} são utilizadas principalmente para documentos PDF, nos quais a estrutura do documento pode ser explorada durante a extração.
-
-\begin{table}[ht]
+\begin{table*}[t]
 \centering
-\caption{Estratégias de segmentação incorporadas à pipeline.}
+\small
+\caption{Resultados de recuperação no top-10. Valores maiores são melhores.}
+\label{tab:resultados}
+\begin{tabular}{llrrr}
+\toprule
+\textbf{Conjunto} & \textbf{Método} & \textbf{MRR@10} & \textbf{nDCG@10} & \textbf{Recall@10} \\
+\midrule
+SciQ & BM25 & 0,775 & 0,819 & 0,952 \\
+SciQ & Denso & 0,719 & 0,769 & 0,923 \\
+SciQ & Híbrido (RRF) & 0,797 & 0,839 & 0,968 \\
+\midrule
+\textit{Ato de Ler} & BM25 & 0,719 & 0,776 & 0,950 \\
+\textit{Ato de Ler} & Denso & 0,703 & 0,762 & 0,960 \\
+\textit{Ato de Ler} & Híbrido (RRF) & 0,815 & 0,848 & 0,970 \\
+\midrule
+Livro de RI & BM25 & 0,576 & 0,621 & 0,810 \\
+Livro de RI & Denso & 0,708 & 0,745 & 0,940 \\
+Livro de RI & Híbrido (RRF) & 0,709 & 0,754 & 0,960 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{SciQ}
+
+O híbrido alcançou a maior cobertura em todos os valores de $k$: Hit@1 de
+0,695 e Hit@10 de 0,968, contra 0,671 e 0,952 para BM25. No top-10, o ganho
+de 0,016 em Hit Rate sobre BM25 foi significativo pelo teste de McNemar com
+correção de Holm ($p=0{,}0066$); o ganho em MRR@10 foi 0,022, com IC95\%
+pareado de $[0{,}0067; 0{,}0370]$. A recuperação densa ficou abaixo dos dois
+demais métodos nesse benchmark. Assim, a fusão trouxe ganho mensurável sem
+evidência de que apenas a similaridade semântica substitua a correspondência
+lexical nesse cenário.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/slides_pdf_ir/05_sciq_recall_por_k.png}
+\caption{Cobertura da evidência no SciQ ao variar $k$ (878 consultas de teste e
+12.135 parágrafos de suporte indexados). As barras indicam IC95\% por
+\textit{bootstrap}; como há uma única evidência relevante por consulta,
+Recall@k equivale a Hit@k.}
+\label{fig:sciq-recall-k}
+\end{figure*}
+
+\subsection{Corpora em PDF}
+
+No \textit{Ato de Ler}, todos os métodos alcançaram cobertura alta no top-10,
+mas o híbrido melhorou a qualidade do ranqueamento: MRR@10 de 0,815, frente a
+0,719 (BM25) e 0,703 (denso). A diferença pareada de MRR entre híbrido e
+BM25 foi 0,096, com IC95\% de $[0{,}021; 0{,}177]$. Esse resultado é
+compatível com o uso complementar de sinais lexicais e semânticos em um corpus
+educacional em português.
+
+No livro de RI, as consultas estão em português, enquanto o texto indexado está
+em inglês. Nessa condição cruzada, denso e híbrido atingiram Hit@10 de 0,980,
+contra 0,820 do BM25 ($p_{\mathrm{Holm}}=0{,}0234$ em ambas as comparações).
+Os valores de MRR@10 dos métodos denso e híbrido foram muito próximos (0,708 e
+0,709), e o intervalo para sua diferença inclui zero. Logo, o resultado não
+permite atribuir a vantagem ao tamanho do livro: tema, idioma e formulação das
+consultas também mudam entre os dois PDFs.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/slides_pdf_ir/07_heatmap_geral_tres_datasets.png}
+\caption{Comparação descritiva do desempenho de recuperação no top-10 nos três
+conjuntos avaliados. Valores maiores são melhores; no SciQ, MRR@10 e MAP@10
+coincidem porque cada pergunta possui uma única evidência relevante.}
+\label{fig:resultados-tres-corpora}
+\end{figure*}
+
+\subsection{Ablação de segmentação}
+
+Mantendo o recuperador híbrido e as 50 consultas do \textit{Ato de Ler}, a
+Tabela~\ref{tab:chunking} compara quatro estratégias de segmentação. Todas
+materializaram as 69 evidências e obtiveram Hit@10 de 0,980. A segmentação
+recursiva obteve o maior MRR@10 e nDCG@10, mas os intervalos de confiança se
+sobrepõem; a ablação deve ser lida como evidência de robustez da instrumentação,
+não como seleção definitiva de uma estratégia.
+
+\begin{table}[t]
+\centering
+\small
+\caption{Ablação de \textit{chunking} no \textit{Ato de Ler} com recuperação híbrida.}
 \label{tab:chunking}
-\begin{tabular}{p{3.6cm} p{8.6cm}}
+\begin{tabular}{lrrrr}
 \toprule
-\textbf{Estratégia} & \textbf{Descrição} \\
+\textbf{Estratégia} & \textbf{Chunks} & \textbf{MRR} & \textbf{nDCG} & \textbf{Recall} \\
 \midrule
-\texttt{fixed\_token} & Divide o texto em janelas de tamanho fixo em tokens, com sobreposição configurável. \\
-\texttt{recursive\_text} & Segmenta recursivamente por parágrafos, frases e palavras, respeitando limites de tamanho e sobreposição. \\
-\texttt{docling\_hierarchical} & Utiliza o chunker hierárquico do Docling, baseado na estrutura detectada do documento. \\
-\texttt{docling\_hybrid} & Combina estrutura documental e refinamento orientado a tamanho de tokens. \\
-\texttt{docling\_hybrid\_parent\_child} & Indexa janelas menores como filhos de trechos estruturais maiores, preservando contexto do trecho pai. \\
-\texttt{docling\_hybrid\_contextual} & Enriquece o texto do \textit{chunk} com contexto estrutural fornecido pelo Docling antes da indexação. \\
+Fixa por tokens & 33 & 0,790 & 0,828 & 0,970 \\
+Recursiva & 35 & 0,817 & 0,849 & 0,970 \\
+Docling hierárquica & 395 & 0,794 & 0,823 & 0,960 \\
+Docling híbrida & 70 & 0,802 & 0,842 & 0,980 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Estratégias de Recuperação Avaliadas}
+\section{Limitações e Próximos Passos}
 
-Três estratégias compõem a comparação principal implementada, enquanto uma quarta condição permanece como extensão futura:
+Os resultados em PDF ainda não estimam generalização: há 50 consultas por
+coleção, perguntas apoiadas por IA e uma única revisão humana. Os julgamentos
+ancorados em citações tornam a avaliação auditável, mas não eliminam a
+incompletude de qrels nem substituem dupla anotação e adjudicação. As páginas
+são metadados de auditoria: citações repetidas no mesmo documento podem
+materializar mais de um qrel. O contraste entre os PDFs altera simultaneamente
+domínio, idioma e consultas;
+não pode ser interpretado como efeito isolado do tamanho do corpus. Os materiais
+também exigem atenção a direitos autorais antes de sua distribuição como
+benchmark.
 
-\begin{enumerate}[label=(\alph*)]
-    \item \textbf{BM25}: recuperação esparsa baseada em correspondência lexical, usada como baseline clássico;
-    \item \textbf{Recuperação densa}: busca vetorial baseada em embeddings de consultas e documentos;
-    \item \textbf{Recuperação híbrida}: combinação entre escores esparsos e densos, por fusão de rankings ou normalização de escores;
-    \item \textbf{Extensão reranqueada}: aplicação futura de um modelo reranqueador identificado e versionado sobre um conjunto de candidatos cuja profundidade seja mantida constante.
-\end{enumerate}
+O próximo passo é congelar um conjunto independente, com anotação humana por
+mais de um avaliador, e reutilizá-lo na camada RAG. Nessa etapa, gerador,
+prompt e $k$ serão mantidos constantes para relacionar as métricas de RI à
+fidelidade, relevância e adequação pedagógica das respostas.
 
-O componente de reranqueamento presente no protótipo de chat combina heuristicamente o escore recuperado e a sobreposição lexical. Ele não é tratado como modelo aprendido nem como condição da análise principal enquanto não for incorporado ao runner de RI e avaliado sob os mesmos controles.
+\section{Conclusão}
 
-A estratégia híbrida pode ser implementada por \textit{Reciprocal Rank Fusion} (RRF), que combina listas ranqueadas atribuindo maior peso a documentos bem posicionados em diferentes recuperadores. A pontuação RRF de um documento $d$ pode ser expressa como:
-
-\begin{equation}
-RRF(d) = \sum_{r \in R} \frac{1}{k + rank_r(d)}
-\end{equation}
-
-em que $R$ representa o conjunto de rankings, $rank_r(d)$ é a posição do documento $d$ no ranking $r$ e $k$ é uma constante de suavização. Essa abordagem é útil por não exigir que os escores de BM25 e embeddings estejam na mesma escala.
-
-\subsection{Arquitetura RAG}
-
-A arquitetura RAG utilizada na avaliação deve manter constante o modelo gerador e o prompt. O prompt deve instruir o modelo a responder apenas com base nos trechos recuperados, indicar quando o contexto for insuficiente e evitar inventar informações não presentes no material. Essa decisão é especialmente importante em tutores inteligentes, pois respostas especulativas podem prejudicar o processo de aprendizagem.
-
-Uma formulação simplificada do prompt pode incluir: (i) papel do sistema como tutor educacional; (ii) pergunta do estudante; (iii) contexto recuperado; (iv) instruções para explicar de forma didática; e (v) orientação para citar ou mencionar a base do conteúdo quando possível. O mesmo prompt deve ser utilizado em todas as condições experimentais para que a comparação reflita prioritariamente o efeito da recuperação.
-
-\subsection{Avaliação da Recuperação}
-
-A primeira camada de avaliação mede o desempenho do recuperador de forma independente da geração. Para isso, é necessário um conjunto de relevância, também conhecido como \textit{qrels}, indicando quais documentos ou trechos são relevantes para cada pergunta. No estudo com PDFs, os julgamentos são registrados em escala graduada: 0 para não relevante, 1 para apoio parcial e 2 para evidência suficiente. O conjunto inicial pode ser assistido por perguntas sintéticas ou pré-anotação automática, mas os itens de teste devem ser revisados por humanos; em uma subamostra estratificada, dois anotadores e uma etapa de adjudicação permitem estimar a concordância.
-
-As métricas propostas incluem Precision@k, Recall@k, Hit Rate@k, Mean Reciprocal Rank (MRR), Mean Average Precision (MAP) e Normalized Discounted Cumulative Gain (nDCG). A Precision@k estima a proporção de documentos relevantes entre os $k$ primeiros resultados:
-
-\begin{equation}
-Precision@k = \frac{|Rel_k|}{k}
-\end{equation}
-
-em que $Rel_k$ representa o conjunto de documentos relevantes recuperados até a posição $k$. O Recall@k mede a proporção de documentos relevantes existentes que foram recuperados:
-
-\begin{equation}
-Recall@k = \frac{|Rel_k|}{|Rel|}
-\end{equation}
-
-A MRR considera a posição do primeiro documento relevante, sendo adequada quando uma única evidência principal é suficiente para responder à pergunta. Já a nDCG considera a posição e o grau de relevância dos documentos, sendo útil quando há múltiplos trechos parcialmente relevantes.
-
-\subsection{Avaliação da Resposta Gerada}
-
-A segunda camada de avaliação mede a qualidade da resposta produzida pelo RAG. Para isso, propõe-se o uso de métricas automatizadas específicas para RAG, como as disponíveis no RAGAS \cite{ragas2023}. Entre as dimensões avaliadas estão: relevância do contexto, fidelidade da resposta ao contexto, relevância da resposta para a pergunta e similaridade com uma resposta de referência quando disponível.
-
-Além das métricas automatizadas, recomenda-se uma rubrica pedagógica complementar. Essa rubrica pode avaliar: correção conceitual, clareza da explicação, adequação ao nível do estudante, uso apropriado de exemplos, ausência de informações não fundamentadas e capacidade de orientar o estudante sem simplesmente fornecer uma resposta final em atividades que exigem raciocínio. A Tabela~\ref{tab:metricas} sintetiza as duas camadas de avaliação.
-
-\begin{table}[ht]
-\centering
-\caption{Camadas de avaliação propostas para o pipeline RAG educacional.}
-\label{tab:metricas}
-\begin{tabular}{p{3.2cm} p{5.0cm} p{5.0cm}}
-\toprule
-\textbf{Camada} & \textbf{Objetivo} & \textbf{Métricas ou critérios} \\
-\midrule
-Recuperação & Medir se os trechos corretos foram recuperados e bem ranqueados & Precision@k, Recall@k, Hit Rate@k, MRR, MAP, nDCG \\
-Geração & Medir se a resposta é correta, fiel e útil ao estudante & Faithfulness, answer relevance, context relevance, correção conceitual, clareza e adequação pedagógica \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Datasets e Cenários de Avaliação}
-
-A avaliação pode combinar datasets públicos e um corpus educacional real. Datasets como SQuAD e HotpotQA permitem testar respostas extraídas de textos e perguntas que exigem múltiplas evidências \cite{squad2016,hotpotqa2018}. SciQ e ARC são úteis por conterem perguntas de ciências em formato educacional \cite{sciq2017,arc2018}. O BEIR, por sua vez, permite avaliar robustez em diferentes tarefas de recuperação \cite{thakur2021beir}. Estudos recentes sobre RAG educacional também reforçam a importância de considerar discrepâncias entre documentos instrucionais e conhecimento paramétrico do modelo, especialmente em ambientes escolares e universitários \cite{li2025educationrag,zheng2024edukdqa}. Quando o foco for educação brasileira, também podem ser construídos subconjuntos a partir de questões públicas do ENEM, desde que respeitadas as condições de uso e os critérios de curadoria.
-
-A combinação de benchmarks públicos e corpus próprio é importante porque os benchmarks oferecem comparabilidade, enquanto o corpus real aproxima o experimento de uma aplicação de tutoria inteligente. Em ambos os casos, recomenda-se classificar as perguntas por tipo, por exemplo: definicionais, conceituais, procedimentais, comparativas, aplicadas e de múltiplas evidências. Essa classificação permite analisar quais técnicas de recuperação são mais adequadas para cada tipo de demanda educacional.
-
-\section{Protocolo Experimental}
-
-O protocolo experimental deve seguir uma sequência reprodutível. Primeiro, o corpus é processado e segmentado. Em seguida, são construídos índices separados para cada estratégia de recuperação e, quando a segmentação for parte da análise, para cada estratégia de \textit{chunking}. Depois, cada pergunta é executada em todas as condições experimentais. Para cada execução, devem ser armazenados: pergunta, estratégia de segmentação, técnica de recuperação, documentos recuperados, posições no ranking, escores, prompt final, resposta gerada, tempo de execução e métricas calculadas.
-
-A Tabela~\ref{tab:condicoes} apresenta as condições experimentais sugeridas.
-
-\begin{table}[ht]
-\centering
-\caption{Condições experimentais propostas.}
-\label{tab:condicoes}
-\begin{tabular}{p{2.8cm} p{4.8cm} p{5.4cm}}
-\toprule
-\textbf{Condição} & \textbf{Recuperador} & \textbf{Objetivo da comparação} \\
-\midrule
-C1 & BM25 & Estabelecer baseline lexical eficiente e interpretável \\
-C2 & Embeddings densos & Avaliar ganhos de similaridade semântica \\
-C3 & BM25 + denso & Medir complementaridade entre recuperação lexical e semântica \\
-C4-E & Híbrido + reranker versionado & Extensão futura, executada somente após integração ao benchmark de RI \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Para reduzir variabilidade, os seguintes controles devem ser aplicados: mesmo conjunto de perguntas, mesmo corpus, mesmo tamanho de \textit{chunk}, mesmo valor de $k$, mesmo modelo gerador, mesma temperatura de geração e mesmo prompt. Quando houver limitações computacionais, recomenda-se utilizar uma amostra estratificada de perguntas por tipo, preservando a diversidade de dificuldades e temas.
-
-A análise estatística deve respeitar o desenho pareado, pois todos os métodos respondem às mesmas consultas. Além dos agregados, devem ser reportados intervalos de confiança de 95\% para as diferenças por consulta e tamanhos de efeito. Hit@k pode ser comparado por McNemar; MRR e nDCG podem ser analisadas por bootstrap pareado, teste de randomização ou Wilcoxon, conforme decisão registrada antes da análise. Contrastes múltiplos devem receber correção, por exemplo pelo procedimento de Holm. Na extensão RAG, a associação entre métricas de RI e métricas de geração pode ser estimada por Spearman ou Kendall, acompanhada de intervalo de confiança por bootstrap.
-
-Para apoiar a replicabilidade, a implementação registra saídas em múltiplos formatos. Os benchmarks geram arquivos \texttt{JSONL} com resultados por consulta, arquivos \texttt{CSV} com métricas tabulares, resumos em \texttt{JSON} e gráficos em \texttt{SVG}/HTML. A interface web também permite exportar execuções pontuais em JSON e CSV, tanto na etapa de recuperação quanto na etapa de chat. Esses artefatos facilitam a inspeção manual, a geração de tabelas para análise estatística e a documentação visual dos experimentos.
-
-\section{Resultados Iniciais e Plano de Análise}
-
-\subsection{Resultados Iniciais da Camada de Recuperação}
-
-Os primeiros resultados foram obtidos com a camada de ingestão e recuperação sobre o conjunto de teste do SciQ. Foram comparadas três condições: BM25, recuperação densa e recuperação híbrida. Nessa rodada inicial, a segmentação textual foi mantida fixa para isolar o efeito do método de recuperação; rodadas posteriores podem comparar explicitamente \texttt{recursive\_text} e \texttt{fixed\_token}. Todos os valores e figuras desta subseção provêm da mesma rodada preliminar, identificada como \texttt{20260707-183922}; ela será preservada como baseline histórica e substituída, nos resultados finais, por uma nova execução com revisões de dataset e modelos fixadas. A Tabela~\ref{tab:resultados-iniciais-sciq} apresenta os resultados agregados para Hit Rate@1, Hit Rate@5, Hit Rate@10 e MRR@10.
-
-\begin{table}[ht]
-\centering
-\caption{Resultados iniciais de recuperação no SciQ, usando 878 consultas de teste.}
-\label{tab:resultados-iniciais-sciq}
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Método} & \textbf{Hit@1} & \textbf{Hit@5} & \textbf{Hit@10} & \textbf{MRR@10} \\
-\midrule
-BM25 & 0,671 & 0,907 & 0,952 & 0,775 \\
-Denso & 0,469 & 0,764 & 0,843 & 0,595 \\
-Híbrido & 0,639 & 0,923 & 0,956 & 0,760 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.95\linewidth]{figures/sciq_metrics_at_10.pdf}
-\caption{Comparação das métricas de recuperação no SciQ para $k=10$, na rodada preliminar registrada.}
-\label{fig:sciq-metricas-k10}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.95\linewidth]{figures/sciq_first_relevant_rank.pdf}
-\caption{Distribuição da posição do primeiro documento relevante recuperado no SciQ.}
-\label{fig:sciq-primeiro-relevante}
-\end{figure}
-
-Os resultados indicam que o BM25 constitui uma baseline forte para o SciQ, especialmente na primeira posição do ranking. Esse comportamento é coerente com a natureza do dataset, pois muitas perguntas científicas compartilham termos técnicos ou expressões próximas às encontradas no parágrafo de suporte. A recuperação densa apresentou desempenho inferior nas métricas avaliadas, sugerindo que, nesse primeiro cenário, a similaridade semântica genérica não superou a correspondência lexical direta.
-
-A estratégia híbrida apresentou o melhor Hit@5 e Hit@10, ainda que tenha ficado abaixo do BM25 em Hit@1 e MRR@10. A diferença observada em Hit@10 é descritivamente pequena e não deve ser interpretada como superioridade confirmada antes da análise pareada com intervalo de confiança. O padrão sugere que a fusão pode aumentar a probabilidade de conter o documento correto no conjunto de contexto, mas nem sempre o posiciona na primeira colocação.
-
-Cada consulta do SciQ possui um único documento relevante binário. Nessa condição, Hit@k coincide com Recall@k, Precision@k é determinada por Hit@k dividido por $k$, e MAP@k coincide com MRR@k. Por esse motivo, MRR@10 é adotada como métrica primária nessa etapa, enquanto Hit@1, Hit@5 e Hit@10 são apresentados como medidas secundárias de cobertura. As demais métricas permanecem nos artefatos para compatibilidade, mas não são interpretadas como evidências independentes.
-
-Não foram observados indícios fortes de vazamento na preparação inicial. Cada consulta possui um único julgamento de relevância, os documentos indexados correspondem aos parágrafos de suporte e apenas uma pequena quantidade de documentos relevantes do teste também aparece associada a outros splits. Ainda assim, a interpretação dos resultados deve considerar uma limitação importante: em alguns casos, documentos semanticamente equivalentes ao suporte esperado podem ser recuperados, mas contam como erro por não possuírem o mesmo identificador do \textit{qrel}. Dessa forma, as métricas podem subestimar parcialmente a utilidade real de certos resultados recuperados.
-
-Além dos agregados numéricos, a pipeline atual produz automaticamente artefatos de análise, como tabelas consolidadas, gráficos de métricas por $k$, gráficos de latência média por método e distribuição da posição do primeiro documento relevante. Esses artefatos serão utilizados nas próximas rodadas para comparar tanto métodos de recuperação quanto estratégias de segmentação.
-
-\subsection{Plano Exploratório da Etapa RAG}
-
-Espera-se que estratégias híbridas apresentem desempenho mais estável do que estratégias isoladas, especialmente em corpora educacionais heterogêneos. A recuperação lexical tende a ser competitiva em perguntas que utilizam termos técnicos presentes no material, enquanto a recuperação densa pode ser vantajosa quando o estudante formula a dúvida com vocabulário diferente do texto original. O reranqueamento só será analisado se um modelo versionado for integrado à camada de RI e se os candidatos anteriores e posteriores ao reranqueamento forem preservados.
-
-Também é esperado que as métricas de RI apresentem correlação positiva com métricas de RAG, mas que essa correlação não seja perfeita. Um alto Recall@k pode indicar que o trecho relevante está presente entre os documentos recuperados, mas não garante que ele esteja em posição privilegiada ou que o modelo gerador o utilize corretamente. Da mesma forma, uma resposta pode ser linguisticamente bem formulada mesmo quando o contexto recuperado é insuficiente, o que reforça a importância de métricas de fidelidade e avaliação pedagógica.
-
-A análise qualitativa dos erros deve complementar os resultados quantitativos. Entre os erros esperados estão: recuperação de trechos genericamente relacionados, mas incapazes de responder à pergunta; seleção de trechos corretos, porém incompletos; conflito entre conhecimento paramétrico do LLM e material recuperado; e respostas que fornecem a solução final sem promover raciocínio. Essa análise é relevante para compreender não apenas qual técnica funciona melhor, mas por que determinadas estratégias falham em situações educacionais específicas.
-
-\section{Ameaças à Validade}
-
-Algumas ameaças à validade devem ser consideradas. A primeira está relacionada à construção do corpus. Se os documentos forem pouco representativos, mal segmentados ou excessivamente ruidosos, os resultados podem refletir problemas de preparação dos dados e não necessariamente limitações das técnicas de recuperação. A própria estratégia de \textit{chunking} pode alterar o desempenho observado, especialmente quando trechos curtos perdem contexto ou trechos longos introduzem ruído. Por isso, quando diferentes segmentações forem comparadas, elas devem ser registradas como condição experimental explícita. A segunda ameaça envolve a anotação de relevância. Em domínios educacionais, diferentes trechos podem ser parcialmente úteis, o que torna a definição de relevância mais subjetiva.
-
-Outra ameaça decorre da incompletude dos julgamentos. Um pool raso pode omitir trechos relevantes e penalizar métodos que recuperem evidências não vistas durante a anotação. Identificadores de \textit{chunks} também são instáveis após reingestão ou mudança de segmentação; por isso, o protocolo ancora os julgamentos no documento-fonte e audita a materialização. Perguntas sintéticas podem favorecer correspondência lexical com o trecho de origem, exigindo paráfrases, estratificação e comparação com perguntas humanas.
-
-Há ainda ameaças associadas ao modelo gerador. Mesmo com recuperação adequada, o LLM pode ignorar parte do contexto, sintetizar informações incorretamente ou produzir explicações pouco didáticas. O uso de LLMs tanto para propor perguntas quanto para julgar respostas pode introduzir vieses correlacionados. Por isso, a avaliação deve separar falhas de recuperação e geração, registrar gerador e juiz e validar as métricas automatizadas em uma amostra humana.
-
-A validade externa também deve ser observada. Resultados obtidos em datasets públicos de QA podem não se transferir diretamente para disciplinas específicas, como programação, matemática, química ou ciências agrárias. Portanto, recomenda-se que o protocolo seja aplicado tanto em benchmarks padronizados quanto em um corpus educacional real, de modo a equilibrar comparabilidade e relevância prática.
-
-\section{Considerações Finais}
-
-Este artigo discutiu o papel da Recuperação da Informação no desempenho de sistemas RAG voltados a tutores inteligentes e propôs um protocolo experimental para avaliar esse impacto. A principal premissa é que a recuperação não deve ser tratada apenas como uma etapa auxiliar do pipeline, mas como componente central que condiciona a qualidade, a fidelidade e a utilidade pedagógica das respostas geradas.
-
-A proposta organiza a avaliação em duas camadas complementares: uma camada de RI, baseada em métricas como Precision@k, Recall@k, MRR, MAP e nDCG; e uma camada de geração, baseada em métricas específicas para RAG e critérios pedagógicos. Essa separação permite diagnosticar se falhas observadas na resposta final decorrem de problemas na recuperação, na geração ou na interação entre ambas.
-
-Como etapa inicial, foi implementada e executada a camada de ingestão e recuperação sobre o SciQ, permitindo comparar BM25, recuperação densa e recuperação híbrida antes da introdução do modelo gerador. Os resultados preliminares indicam que o BM25 é uma baseline forte na primeira posição, enquanto a estratégia híbrida apresenta cobertura descritivamente maior em $k=5$ e $k=10$. O próximo passo principal é construir o conjunto de perguntas e evidências para PDFs, materializar qrels sob um \textit{chunking} fixo e repetir a comparação com inferência estatística. A ablação de segmentação será executada separadamente. Apenas depois, um subconjunto congelado será reutilizado na análise RAGAS exploratória. Essa sequência reforça a Recuperação da Informação como eixo metodológico do estudo e permite diagnosticar a geração sem confundir falhas entre as camadas.
-
+O estudo mostra que não há um recuperador universalmente melhor, mas que a
+fusão híbrida foi a condição mais consistente nos conjuntos avaliados. Ela
+liderou o SciQ e o \textit{Ato de Ler}; no livro de RI em condição
+português--inglês, denso e híbrido superaram claramente o BM25 e permaneceram
+próximos entre si. A separação entre comparação de recuperadores, materialização
+de evidências e ablação de segmentação torna os resultados reproduzíveis e
+evita atribuir à geração falhas que pertencem à recuperação. A avaliação das
+respostas do tutor é a etapa necessária para verificar se esses ganhos se
+traduzem em melhor apoio à aprendizagem.
 
 \begin{thebibliography}{99}
 
-\bibitem[ARC 2018]{arc2018}
-Clark, P., Cowhey, I., Etzioni, O., Khot, T., Sabharwal, A., Schoenick, C. and Tafjord, O. (2018). ``Think You Have Solved Question Answering? Try ARC, the AI2 Reasoning Challenge''. \textit{arXiv preprint arXiv:1803.05457}.
-
-\bibitem[ARES 2023]{ares2023}
-Saad-Falcon, J., Khattab, O., Potts, C. and Zaharia, M. (2023). ``ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems''. \textit{arXiv preprint arXiv:2311.09476}.
+\bibitem[Cormack et al. 2009]{cormack2009}
+Cormack, G. V., Clarke, C. L. A. and Buettcher, S. (2009).
+Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning
+Methods. In \textit{Proceedings of the 32nd International ACM SIGIR
+Conference on Research and Development in Information Retrieval}, p. 758--759.
 
 \bibitem[Es et al. 2023]{ragas2023}
-Es, S., James, J., Espinosa-Anke, L. and Schockaert, S. (2023). ``RAGAS: Automated Evaluation of Retrieval Augmented Generation''. \textit{arXiv preprint arXiv:2309.15217}.
+Es, S., James, J., Espinosa-Anke, L. and Schockaert, S. (2023).
+RAGAS: Automated Evaluation of Retrieval Augmented Generation.
+\textit{arXiv preprint arXiv:2309.15217}.
 
-\bibitem[HotpotQA 2018]{hotpotqa2018}
-Yang, Z., Qi, P., Zhang, S., Bengio, Y., Cohen, W. W., Salakhutdinov, R. and Manning, C. D. (2018). ``HotpotQA: A Dataset for Diverse, Explainable Multi-hop Question Answering''. In \textit{Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing}, p. 2369--2380.
+\bibitem[Freire 1989]{freire1989}
+Freire, P. (1989). \textit{A importância do ato de ler: em três artigos que
+se completam}. 23. ed. São Paulo: Autores Associados; Cortez.
 
 \bibitem[Karpukhin et al. 2020]{karpukhin2020}
-Karpukhin, V., O{\u{g}}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D. and Yih, W. (2020). ``Dense Passage Retrieval for Open-Domain Question Answering''. In \textit{Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing}, p. 6769--6781.
+Karpukhin, V., O{\u{g}}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S.,
+Chen, D. and Yih, W. (2020). Dense Passage Retrieval for Open-Domain
+Question Answering. In \textit{Proceedings of the 2020 Conference on
+Empirical Methods in Natural Language Processing}, p. 6769--6781.
 
 \bibitem[Kuhail et al. 2023]{kuhail2023}
-Kuhail, M. A., Alturki, N., Alramlawi, S. and Alhejori, K. (2023). ``Interacting with Educational Chatbots: A Systematic Review''. \textit{Education and Information Technologies}, v. 28, p. 973--1018.
+Kuhail, M. A., Alturki, N., Alramlawi, S. and Alhejori, K. (2023).
+Interacting with Educational Chatbots: A Systematic Review.
+\textit{Education and Information Technologies}, v. 28, p. 973--1018.
 
 \bibitem[Lewis et al. 2020]{lewis2020}
-Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K{\"u}ttler, H., Lewis, M., Yih, W., Rockt{\"a}schel, T., Riedel, S. and Kiela, D. (2020). ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks''. In \textit{Advances in Neural Information Processing Systems}, v. 33, p. 9459--9474.
-
-\bibitem[Li et al. 2025]{li2025educationrag}
-Li, Z., Wang, Z., Wang, W., Hung, K., Xie, H. and Wang, F. L. (2025). ``Retrieval-Augmented Generation for Educational Application: A Systematic Survey''. \textit{Computers and Education: Artificial Intelligence}, v. 8, art. 100417. doi:10.1016/j.caeai.2025.100417.
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N.,
+K{\"u}ttler, H., Lewis, M., Yih, W., Rockt{\"a}schel, T., Riedel, S. and
+Kiela, D. (2020). Retrieval-Augmented Generation for Knowledge-Intensive
+NLP Tasks. In \textit{Advances in Neural Information Processing Systems},
+v. 33, p. 9459--9474.
 
 \bibitem[Manning et al. 2008]{manning2008}
-Manning, C. D., Raghavan, P. and Sch{\"u}tze, H. (2008). \textit{Introduction to Information Retrieval}. Cambridge University Press.
-
-\bibitem[Rajpurkar et al. 2016]{squad2016}
-Rajpurkar, P., Zhang, J., Lopyrev, K. and Liang, P. (2016). ``SQuAD: 100,000+ Questions for Machine Comprehension of Text''. In \textit{Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing}, p. 2383--2392.
+Manning, C. D., Raghavan, P. and Sch{\"u}tze, H. (2008).
+\textit{Introduction to Information Retrieval}. Cambridge University Press.
 
 \bibitem[Robertson and Zaragoza 2009]{robertson2009}
-Robertson, S. and Zaragoza, H. (2009). ``The Probabilistic Relevance Framework: BM25 and Beyond''. \textit{Foundations and Trends in Information Retrieval}, v. 3, n. 4, p. 333--389.
+Robertson, S. and Zaragoza, H. (2009). The Probabilistic Relevance
+Framework: BM25 and Beyond. \textit{Foundations and Trends in Information
+Retrieval}, v. 3, n. 4, p. 333--389.
 
 \bibitem[Salemi and Zamani 2024]{salemi2024}
-Salemi, A. and Zamani, H. (2024). ``Evaluating Retrieval Quality in Retrieval-Augmented Generation''. In \textit{Proceedings of the 47th International ACM SIGIR Conference on Research and Development in Information Retrieval}, p. 2395--2400.
+Salemi, A. and Zamani, H. (2024). Evaluating Retrieval Quality in
+Retrieval-Augmented Generation. In \textit{Proceedings of the 47th ACM
+SIGIR Conference on Research and Development in Information Retrieval},
+p. 2395--2400.
 
 \bibitem[SciQ 2017]{sciq2017}
-Welbl, J., Liu, N. F. and Gardner, M. (2017). ``Crowdsourcing Multiple Choice Science Questions''. In \textit{Proceedings of the 3rd Workshop on Noisy User-generated Text}, p. 94--106.
-
-\bibitem[Thakur et al. 2021]{thakur2021beir}
-Thakur, N., Reimers, N., R{\"u}ckl{\'e}, A., Srivastava, A. and Gurevych, I. (2021). ``BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models''. \textit{arXiv preprint arXiv:2104.08663}.
-
-\bibitem[NIST TREC]{trecqrels}
-National Institute of Standards and Technology (NIST). ``Text REtrieval Conference: English Relevance Judgements''. Disponível em: \url{https://trec.nist.gov/data/reljudge_eng.html}. Acesso em: 10 jul. 2026.
+Welbl, J., Liu, N. F. and Gardner, M. (2017). Crowdsourcing Multiple
+Choice Science Questions. In \textit{Proceedings of the 3rd Workshop on
+Noisy User-generated Text}, p. 94--106.
 
 \bibitem[Woolf 2009]{woolf2009}
-Woolf, B. P. (2009). \textit{Building Intelligent Interactive Tutors: Student-Centered Strategies for Revolutionizing E-Learning}. Morgan Kaufmann.
-
-\bibitem[Yu et al. 2024]{yu2024survey}
-Yu, H., Gan, A., Zhang, K., Tong, S., Liu, Q. and Liu, Z. (2024). ``Evaluation of Retrieval-Augmented Generation: A Survey''. \textit{arXiv preprint arXiv:2405.07437}.
-
-\bibitem[Zheng et al. 2024]{zheng2024edukdqa}
-Zheng, T., Li, W., Bai, J., Wang, W. and Song, Y. (2024). ``Assessing the Robustness of Retrieval-Augmented Generation Systems in K-12 Educational Question Answering with Knowledge Discrepancies''. \textit{arXiv preprint arXiv:2412.08985}.
+Woolf, B. P. (2009). \textit{Building Intelligent Interactive Tutors:
+Student-Centered Strategies for Revolutionizing E-Learning}. Morgan Kaufmann.
 
 \end{thebibliography}
 

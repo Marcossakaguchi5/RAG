@@ -132,6 +132,10 @@ consolidado, com RI como estudo principal e RAG como extensão, está em
 materializador de evidências para chunks ficam em
 [experiments/groundtruth/](experiments/groundtruth/README.md).
 
+Para entender o desenho dos estudos, as métricas, os cálculos, a estatística e os
+artefatos gerados em `experiments/`, consulte o
+[GUIA_EXPERIMENTACAO.md](GUIA_EXPERIMENTACAO.md).
+
 O roteiro sequencial para executar SciQ, PDF/RI, ablação de chunking e RAG/RAGAS está
 em [EXECUCAO_COMPLETA.md](EXECUCAO_COMPLETA.md).
 

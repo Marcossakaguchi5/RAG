@@ -90,20 +90,26 @@ qrels incompletos.
 Esta etapa mantém o recuperador híbrido fixo e varia apenas a segmentação. Assim ela
 não é confundida com a comparação principal entre recuperadores.
 
+Use o mesmo conjunto gold aprovado da etapa 4. Cada estratégia precisa materializar
+integralmente as 69 evidências; uma evidência pode usar até três chunks estruturais
+ordenados da mesma página quando eles recompõem exatamente a citação. A execução
+para com diagnóstico se ainda houver tokens não mapeados, em vez de reduzir a
+cobertura exigida.
+
 ```bash
 python experiments/run_experiment.py pdf-ir \
-  --run-id pdf-chunking-01 \
+  --run-id pdf-chunking-gold-01 \
   --pdf importancia_ato_ler.pdf \
-  --cases experiments/cases/freire_pilot.draft.jsonl \
-  --allow-draft-cases \
-  --collection-prefix freire_chunking_01 \
+  --cases experiments/cases/freire_50.gold.jsonl \
+  --collection-prefix freire_chunking_gold_50_01 \
   --chunking-strategies fixed_token,recursive_text,docling_hierarchical,docling_hybrid \
   --methods hybrid \
   --top-k 10 \
+  --source-audit-extractor pdftotext \
   --bootstrap-repetitions 2000
 ```
 
-Saída: `experiments/runs/novas/pdf-ir/pdf-chunking-01/`. Além dos agregados de cada
+Saída: `experiments/runs/novas/pdf-ir/pdf-chunking-gold-01/`. Além dos agregados de cada
 estratégia, `plots/paired_chunking_differences.*` contém os contrastes pareados entre
 chunkings mantendo o método híbrido fixo.
 

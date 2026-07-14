@@ -68,8 +68,8 @@ class MaterializeTests(unittest.TestCase):
 
     def test_normalization_equates_pdf_hyphen_spacing_artifacts(self):
         self.assertEqual(
-            normalize_text("pós- alfabetização e ex- ministra"),
-            normalize_text("pós-\nalfabetização e ex-\nministra"),
+            normalize_text("pós- alfabetização, tomá -lo e ex- ministra"),
+            normalize_text("pós-\nalfabetização, tomá-lo e ex-\nministra"),
         )
 
     def test_normalization_ignores_attached_pdf_footnote_markers(self):
@@ -77,6 +77,28 @@ class MaterializeTests(unittest.TestCase):
             normalize_text("Fazer a História é estar representado"),
             normalize_text("Fazer a História é estar representado9"),
         )
+
+    def test_page_local_fragments_can_exactly_reconstruct_evidence(self):
+        master = case("Um trecho de evidência repartido entre dois blocos.")
+        chunks = [
+            {
+                **chunk("Um trecho de evidência"),
+                "chunk_id": "chunk-1",
+                "ordinal": 10,
+            },
+            {
+                **chunk("repartido entre dois blocos."),
+                "chunk_id": "chunk-2",
+                "ordinal": 11,
+            },
+        ]
+
+        ingest, _ragas, report = materialize_records([master], chunks)
+
+        self.assertEqual(ingest[0]["relevant_chunk_ids"], ["chunk-1", "chunk-2"])
+        match = report["cases"][0]["evidence"][0]["matches"][0]
+        self.assertEqual(match["match_mode"], "normalized_exact_fragmented")
+        self.assertEqual(match["coverage"], 1.0)
 
     def test_unmatched_evidence_fails_strictly(self):
         with self.assertRaises(UnmappedEvidenceError) as raised:

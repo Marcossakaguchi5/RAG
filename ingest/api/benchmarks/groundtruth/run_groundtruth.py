@@ -246,7 +246,7 @@ def write_metrics_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "error",
     ]
     with path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer = csv.DictWriter(file, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow(

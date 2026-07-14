@@ -10,7 +10,11 @@ from plot_pdf_ir import (  # noqa: E402
     bootstrap_mean_ci,
     paired_chunking_differences,
     paired_differences,
+    ranked_metrics_at_k,
+    series_label_lines,
+    summarize_by_k,
     summarize,
+    svg_chart,
 )
 
 
@@ -94,6 +98,41 @@ class PlotPdfIrTests(unittest.TestCase):
         self.assertEqual(hit["left_chunking_strategy"], "fixed_token")
         self.assertEqual(hit["right_chunking_strategy"], "recursive_text")
         self.assertEqual(hit["right_wins"], 1)
+
+    def test_svg_chart_renders_one_metric_with_readable_series_labels(self):
+        summaries = summarize(
+            [
+                row("hybrid", 0.8, 0.82, 0.97),
+                row("hybrid", 0.9, 0.88, 0.98),
+            ],
+            repetitions=200,
+            seed=42,
+        )
+
+        svg = svg_chart(summaries, "ndcg_at_k", "nDCG@k")
+
+        self.assertIn("PDF-IR: nDCG@k", svg)
+        self.assertNotIn("rotate(", svg)
+        self.assertIn("<tspan", svg)
+        self.assertEqual(series_label_lines("docling_hierarchical", "hybrid"), ("Docling hierarchical", "HYBRID"))
+
+    def test_metrics_by_k_are_recomputed_from_persisted_rankings(self):
+        item = row("hybrid", 0.0, 0.0, 0.0)
+        item.update(
+            {
+                "case_id": "q1",
+                "retrieved_chunk_ids": ["x", "relevant"],
+                "relevant_chunk_ids": ["relevant"],
+                "relevance_by_chunk": {"relevant": 2.0},
+            }
+        )
+
+        metrics = ranked_metrics_at_k(item, 2)
+        summaries = summarize_by_k([item], repetitions=200, seed=42)
+
+        self.assertEqual(metrics["mrr"], 0.5)
+        self.assertEqual(metrics["hit_rate_at_k"], 1.0)
+        self.assertEqual({row["k"] for row in summaries}, {1, 2})
 
 
 if __name__ == "__main__":
