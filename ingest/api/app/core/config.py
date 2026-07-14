@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     sparse_model: str = "Qdrant/bm25"
     sparse_language: str = "portuguese"
     fastembed_cache_dir: str = "/models/fastembed"
+    index_batch_size: int = Field(default=32, ge=1)
 
     docling_enabled: bool = True
     docling_artifacts_path: str = ""

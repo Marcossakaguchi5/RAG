@@ -274,6 +274,7 @@ def experiment_config() -> dict[str, object]:
         "embedding_model_revision": settings.embedding_model_revision or None,
         "sparse_model": settings.sparse_model,
         "sparse_language": settings.sparse_language,
+        "index_batch_size": settings.index_batch_size,
         "chunking_default": normalize_chunking_strategy(settings.chunking_strategy),
         "chunking_parameters": {
             "chunk_min_words": settings.chunk_min_words,

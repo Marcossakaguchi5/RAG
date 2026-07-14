@@ -80,29 +80,42 @@ def _chunk_payload(
 def index_document_chunks(document: Document, chunks: list[Chunk]) -> None:
     if not chunks:
         return
+    settings = get_settings()
     collection_name = document.collection_name
-    dense_vectors = get_embedding_service().encode([chunk.content for chunk in chunks])
-    sparse_vectors = get_sparse_embedding_service().encode_documents([chunk.content for chunk in chunks])
     indexed_at = datetime.now(timezone.utc).isoformat()
     chunk_total = len(chunks)
-    points = [
-        models.PointStruct(
-            id=chunk.id,
-            vector={
-                DENSE_VECTOR_NAME: dense_vector,
-                SPARSE_VECTOR_NAME: sparse_vector,
-            },
-            payload=_chunk_payload(
-                document,
-                chunk,
-                collection_name=collection_name,
-                chunk_total=chunk_total,
-                indexed_at=indexed_at,
-            ),
-        )
-        for chunk, dense_vector, sparse_vector in zip(chunks, dense_vectors, sparse_vectors, strict=True)
-    ]
-    upsert_chunks(points, collection_name)
+    dense_embedding_service = get_embedding_service()
+    sparse_embedding_service = get_sparse_embedding_service()
+
+    # Um livro longo pode conter centenas de chunks. Vetorizar todos de uma vez
+    # mantém desnecessariamente o lote inteiro em memória e atrasa o primeiro
+    # upsert no Qdrant. Os lotes preservam os mesmos vetores e metadados, mas
+    # tornam a ingestão incremental e recuperável em caso de falha.
+    for start in range(0, chunk_total, settings.index_batch_size):
+        chunk_batch = chunks[start : start + settings.index_batch_size]
+        texts = [chunk.content for chunk in chunk_batch]
+        dense_vectors = dense_embedding_service.encode(texts)
+        sparse_vectors = sparse_embedding_service.encode_documents(texts)
+        points = [
+            models.PointStruct(
+                id=chunk.id,
+                vector={
+                    DENSE_VECTOR_NAME: dense_vector,
+                    SPARSE_VECTOR_NAME: sparse_vector,
+                },
+                payload=_chunk_payload(
+                    document,
+                    chunk,
+                    collection_name=collection_name,
+                    chunk_total=chunk_total,
+                    indexed_at=indexed_at,
+                ),
+            )
+            for chunk, dense_vector, sparse_vector in zip(
+                chunk_batch, dense_vectors, sparse_vectors, strict=True
+            )
+        ]
+        upsert_chunks(points, collection_name)
 
 
 def rebuild_index_from_mysql(session: Session, collection_name: str | None = None, batch_size: int = 20) -> int:

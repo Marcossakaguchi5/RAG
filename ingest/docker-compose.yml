@@ -68,6 +68,7 @@ services:
       EMBEDDING_MODEL_REVISION: ${EMBEDDING_MODEL_REVISION:-}
       HF_HOME: /models
       FASTEMBED_CACHE_PATH: /models/fastembed
+      INDEX_BATCH_SIZE: ${INDEX_BATCH_SIZE:-32}
       CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
       INGEST_APP_PASSWORD: ${INGEST_APP_PASSWORD:-alterar-esta-senha}
       CHUNKING_STRATEGY: ${CHUNKING_STRATEGY:-recursive_text}

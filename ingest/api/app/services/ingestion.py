@@ -71,12 +71,14 @@ def ingest_pdf(
         for draft in drafts
     ]
     stored_file = False
-    indexed_points = False
+    indexing_started = False
     try:
         put_pdf(object_name, data)
         stored_file = True
+        # index_document_chunks agora envia vários lotes; se um lote posterior
+        # falhar, remova também os pontos já enviados nos lotes anteriores.
+        indexing_started = True
         index_document_chunks(document, chunks)
-        indexed_points = True
         session.add(document)
         session.add_all(chunks)
         session.commit()
@@ -84,7 +86,7 @@ def ingest_pdf(
         return document_to_schema(document)
     except Exception:
         session.rollback()
-        if indexed_points:
+        if indexing_started:
             try:
                 delete_chunks([chunk.id for chunk in chunks], collection_name)
             except Exception:
